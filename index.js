@@ -1,5 +1,9 @@
 /* eslint consistent-return: 0, no-console: 0 */
 
+/*
+doddle bot build by Ben Hunter
+*/
+
 const Discord = require('discord.js');
 
 const config = require('./config.json');
