@@ -8,10 +8,10 @@ const fs = require('fs');
 
 const client = new Discord.Client();
 
-const colourcommandList = fs.readFileSync('colourcommands.txt', 'utf8');
-const catcommandList = fs.readFileSync('catogerycommandlist.txt', 'utf8');
-const perscommandList = fs.readFileSync('perscommandlist.txt', 'utf8');
-const othercommandList = fs.readFileSync('othercommandlist.txt', 'utf8');
+const colourcommandList = fs.readFileSync('command lists/colourcommands.txt', 'utf8');
+const catcommandList = fs.readFileSync('command lists/catogerycommandlist.txt', 'utf8');
+const perscommandList = fs.readFileSync('command lists/perscommandlist.txt', 'utf8');
+const othercommandList = fs.readFileSync('command lists/othercommandlist.txt', 'utf8');
 
 client.login(config.token);
 
