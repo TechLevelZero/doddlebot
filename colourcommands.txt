@@ -1,0 +1,11 @@
+
+d!lime
+
+d!rose
+
+d!bluesky
+
+d!lightviolet
+
+d!removecolour
+_____

@@ -1,0 +1,7 @@
+
+d!allhelp   -   `Shows evey command (__Try not to abuse this__)`
+
+d!colourroles   -   `Shows colour role commands`
+
+d!personalroles   -   `Shows personal role commands`
+_____

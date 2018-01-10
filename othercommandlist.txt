@@ -1,0 +1,7 @@
+
+d!help  -   `You will never guess what this does!`
+
+d!serverinfo   -   `Shows basic info about doddlecord`
+
+d!ping   -   `shows the delay from you to doddlebot back to you again`
+_____
