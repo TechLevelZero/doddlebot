@@ -501,7 +501,7 @@ client.on('message', (message) => {
       .addField('Channels', `${message.guild.channels.filter(chan => chan.type === 'voice').size} voice / ${message.guild.channels.filter(chan => chan.type === 'text').size} text`)
       .addField('Mods', '@96drum @doctorzelda75 @SCಠಠP')
       .addField('Managers', '@ShaunaSmells @TechLevelZero @Metakarp @Jaydork')
-      .addFooter('d!patreon');
+      .setFooter('d!patreon');
     message.channel.send({ embed });
   }
 
@@ -521,7 +521,8 @@ client.on('message', (message) => {
       .setTitle('**Help**')
       .setDescription('Looking for help? yes...well look below for the category you need help with!')
       .setThumbnail('https://pbs.twimg.com/media/DTDcEe-W4AUqV8D.jpg:large')
-      .addField('**Commands**', (catcommandList));
+      .addField('**Commands**', (catcommandList))
+      .setFooter('d!patreon');
     message.channel.send({ embed });
   }
 
