@@ -500,7 +500,8 @@ client.on('message', (message) => {
       .addField('Bots', `${message.guild.members.filter(member => member.user.bot).size} Bots`)
       .addField('Channels', `${message.guild.channels.filter(chan => chan.type === 'voice').size} voice / ${message.guild.channels.filter(chan => chan.type === 'text').size} text`)
       .addField('Mods', '@96drum @doctorzelda75 @SCಠಠP')
-      .addField('Managers', '@ShaunaSmells @TechLevelZero @Metakarp @Jaydork');
+      .addField('Managers', '@ShaunaSmells @TechLevelZero @Metakarp @Jaydork')
+      .addFooter('d!patreon');
     message.channel.send({ embed });
   }
 
@@ -559,5 +560,9 @@ client.on('message', (message) => {
 
   if (command === 'ping') {
     message.channel.send(`Ping is ${Math.round(client.ping)}ms`);
+  }
+
+  if (command === 'patreon') {
+    message.channel.send('<https://www.patreon.com/benhunter>');
   }
 });
