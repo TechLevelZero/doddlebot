@@ -555,7 +555,8 @@ client.on('message', (message) => {
       .addField('**Category Commands**', (catcommandList))
       .addField('**Other Commands**', (othercommandList))
       .addField('**Colour Commands**', (colourcommandList))
-      .addField('**Personal Commands**', (perscommandList));
+      .addField('**Personal Commands**', (perscommandList))
+      .setFooter('d!patreon');
     message.channel.send({ embed });
   }
 
@@ -564,6 +565,6 @@ client.on('message', (message) => {
   }
 
   if (command === 'patreon') {
-    message.channel.send('<https://www.patreon.com/benhunter>');
+    message.channel.send('Support the bots @-----> <https://www.patreon.com/benhunter>');
   }
 });
