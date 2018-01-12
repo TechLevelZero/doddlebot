@@ -3,5 +3,5 @@ config.json
 package.json
 package-lock.json
 doddlebot pic.PNG
-eslintrc.json
-gitattributes
+.eslintrc.json
+.gitattributes
