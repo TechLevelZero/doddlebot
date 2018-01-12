@@ -24,7 +24,6 @@ client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
 });
 
-
 client.on('guildMemberAdd', (member) => {
   console.log(`${member.user.tag} (${member.id}) has joined ${member.guild.name}`);
   member.guild.channels.find('name', 'introduce_yourself').send(`${member}`);
@@ -169,7 +168,7 @@ client.on('message', (message) => {
         message.member.removeRole(roseid());
         message.member.removeRole(limeid());
         message.member.removeRole(lightvioletid());
-        message.channel.send('Blue sky is now your colour');
+        message.channel.send(`Blue sky is now your colour ${message.author}`);
         console.log(`${message.author.tag} has the blue sky role now`);
       }
     } else {
@@ -189,7 +188,7 @@ client.on('message', (message) => {
         message.member.removeRole(roseid());
         message.member.removeRole(blueskyid());
         message.member.removeRole(limeid());
-        message.channel.send('Light violet is now your colour');
+        message.channel.send(`Light violet is now your colour ${message.author}`);
         console.log(`${message.author.tag} has the light violet now`);
       }
     } else {
