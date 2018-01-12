@@ -33,7 +33,6 @@ client.on('guildMemberAdd', (embedwelcome) => {
   const embed = new Discord.MessageEmbed()
     .setColor(0xFEF65B)
     .setTitle('**Welcome to doddlecord!**')
-    //.setThumbnail('https://metrouk2.files.wordpress.com/2017/08/dodie-07-e1502368110100.jpg')
     .setImage('https://cdn.discordapp.com/attachments/401431353482280960/401486447414345740/dodie_welcome1.png')
     .setDescription(welcomemsg);
   embedwelcome.guild.channels.find('name', 'introduce_yourself').send({ embed });
