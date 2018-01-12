@@ -16,6 +16,7 @@ const colourcommandList = fs.readFileSync('command lists/colourcommands.txt', 'u
 const catcommandList = fs.readFileSync('command lists/catogerycommandlist.txt', 'utf8');
 const perscommandList = fs.readFileSync('command lists/perscommandlist.txt', 'utf8');
 const othercommandList = fs.readFileSync('command lists/othercommandlist.txt', 'utf8');
+const welcomemsg = fs.readFileSync('text format/welcome message.txt', 'utf8');
 
 client.login(config.token);
 
@@ -23,9 +24,19 @@ client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
 });
 
+
 client.on('guildMemberAdd', (member) => {
   console.log(`${member.user.tag} (${member.id}) has joined ${member.guild.name}`);
-  member.guild.channels.find('name', 'introduce_yourself').send(`${member} Welcome to doddlecord! Why don't you briefly introduce yourself, and one of our admins will make sure you can see and chat in all of our channels! Don't forget to read the rules, and have a good time! :yellow_heart: Psst, check the pinned message in this channel for tips on an introduction :pushpin:`);
+  member.guild.channels.find('name', 'introduce_yourself').send(`${member}`);
+});
+
+client.on('guildMemberAdd', (embedwelcome) => {
+  const embed = new Discord.MessageEmbed()
+    .setColor(0xFEF65B)
+    .setTitle('**Welcome to doddlecord!**')
+    .setThumbnail('https://pbs.twimg.com/media/DTDcEe-W4AUqV8D.jpg:large')
+    .setDescription(welcomemsg);
+  embedwelcome.guild.channels.find('name', 'introduce_yourself').send({ embed });
 });
 
 client.on('guildMemberRemove', (remember) => {
