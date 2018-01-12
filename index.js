@@ -1,7 +1,7 @@
 /* eslint consistent-return: 0, no-console: 0 */
 
 /*
-doddle bot build by Ben Hunter
+doddle bot v1.1.1 (build: 0087) by Ben Hunter
 */
 
 const Discord = require('discord.js');
