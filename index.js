@@ -16,7 +16,7 @@ const colourcommandList = fs.readFileSync('command lists/colourcommands.txt', 'u
 const catcommandList = fs.readFileSync('command lists/catogerycommandlist.txt', 'utf8');
 const perscommandList = fs.readFileSync('command lists/perscommandlist.txt', 'utf8');
 const othercommandList = fs.readFileSync('command lists/othercommandlist.txt', 'utf8');
-const welcomemsg = fs.readFileSync('text format/welcome message.txt', 'utf8');
+const welcomemsg = fs.readFileSync('txt_files/welcome message.txt', 'utf8');
 
 client.login(config.token);
 
