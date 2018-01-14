@@ -574,6 +574,10 @@ client.on('message', (message) => {
     message.channel.send(`Ping is ${Math.round(client.ping)}ms`);
   }
 
+  if (command === 'bug') {
+    //temp
+  }
+
   if (command === 'patreon') {
     message.channel.send('Support the bots @-----> <https://www.patreon.com/benhunter>');
   }
