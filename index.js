@@ -642,12 +642,9 @@ client.on('message', (message) => {
   }
 
   if (command ==='bug') {
-    logger.debug(`FROM ${message.author.tag} REPORTING ${message.content.slice(config.prefix.length).trim()}`)
-    message.channel.send(`Thanks ${message.author}, that has now been loged.`);
-  }
-
-  if (command === 'bug') {
-    //temp
+    logger.debug(`ARCHIVE: ${message.author.tag} REPORTING ${message.content.slice(config.prefix.length).trim()}`)
+    console.log(`${message.author.tag} REPORTING ${message.content.slice(config.prefix.length).trim()}`)
+    message.channel.send(`Thanks ${message.author}, that has now been logged.`);
   }
 
   if (command === 'patreon') {
