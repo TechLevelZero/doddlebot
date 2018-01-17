@@ -10,6 +10,19 @@ const config = require('./config.json');
 
 const fs = require('fs');
 
+var log4js = require('log4js');
+  log4js.configure({
+    appenders: {
+      everything: { type: 'file', filename: 'BUGS.log' }
+    },
+    categories: {
+      default: { appenders: [ 'everything' ], level: 'debug'},
+      bug: { appenders: [ 'everything' ], level: 'info'}
+    }
+});
+
+const logger = log4js.getLogger();
+
 const client = new Discord.Client();
 
 const colourcommandList = fs.readFileSync('command lists/colourcommands.txt', 'utf8');
@@ -17,18 +30,28 @@ const catcommandList = fs.readFileSync('command lists/catogerycommandlist.txt', 
 const perscommandList = fs.readFileSync('command lists/perscommandlist.txt', 'utf8');
 const othercommandList = fs.readFileSync('command lists/othercommandlist.txt', 'utf8');
 const welcomemsg = fs.readFileSync('txt_files/welcome message.txt', 'utf8');
+const log = fs.readFileSync('BUGS.log', 'utf8');
 
 client.login(config.token);
 
 client.on('ready', () => {
-  console.log(`Logged in as ${client.user.tag}!`);
+  console.log(`Logged in as ${client.user.tag}!`)
+  console.log(log)
+  console.log('ARCHIVE LOADED');
 });
 
 client.on('guildMemberAdd', (member) => {
-  console.log(`${member.user.tag} (${member.id}) has joined ${member.guild.name}`);
-  member.guild.channels.find('name', 'introduce_yourself').send(`${member}`);
+  console.log(`${member.user.tag} (${member.id}) has joined ${member.guild.name}`)
+  logger.info(`ARCHIVE: ${member.user.tag} (${member.id}) has joined ${member.guild.name}`)
+  member.guild.channels.find('name', 'introduce_yourself').send(`${member}`)
+  const embed = new Discord.MessageEmbed()
+    .setColor(0xFEF65B)
+    .setTitle('**Welcome to doddlecord!**')
+    .setImage('https://cdn.discordapp.com/attachments/401431353482280960/401486447414345740/dodie_welcome1.png')
+    .setDescription(welcomemsg);
+  embedwelcome.guild.channels.find('name', 'introduce_yourself').send({ embed });
 });
-
+/*
 client.on('guildMemberAdd', (embedwelcome) => {
   const embed = new Discord.MessageEmbed()
     .setColor(0xFEF65B)
@@ -37,9 +60,10 @@ client.on('guildMemberAdd', (embedwelcome) => {
     .setDescription(welcomemsg);
   embedwelcome.guild.channels.find('name', 'introduce_yourself').send({ embed });
 });
-
+*/
 client.on('guildMemberRemove', (remember) => {
-  console.log(`${remember.user.tag} (${remember.id}) Has left ${remember.guild.name}`);
+  console.log(`${remember.user.tag} (${remember.id}) Has left ${remember.guild.name}`)
+  logger.info(`ARCHIVE: ${remember.user.tag} (${remember.id}) Has left ${remember.guild.name}`)
   remember.guild.channels.find('name', 'general').send(`${remember} Has left ${remember.guild.name}, hopefully we see them again soon!`);
 });
 
@@ -108,81 +132,91 @@ function memetrashid() {
 }
 
 client.on('message', (message) => {
-  if (message.author.bot) return;
+  if (message.author.bot) {
+    console.log(`${author.user.tag} is a bot`)
+    logger.info(`ARCHIVE: ${author.user.tag} is a bot`);
+  };
 
   if (message.content.indexOf(config.prefix) !== 0) return;
 
   const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
   const command = args.shift().toLowerCase();
+  const logger = log4js.getLogger();
 
   // colour stuff
 
   if (command === 'lime') {
     if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
       if (message.member.roles.has(limeid())) {
-        message.channel.send('You have lime...you lemon');
-        console.log(`${message.author.tag} had the lime role already`);
+        message.channel.send('You have lime...you lemon')
+        console.log(`${message.author.tag} had the lime role already`)
+        logger.info(`ARCHIVE: ${message.author.tag} had the lime role already`);
       } else {
-        message.member.addRole(limeid());
-        message.member.removeRole(roseid());
-        message.member.removeRole(blueskyid());
-        message.member.removeRole(lightvioletid());
-        message.channel.send(`Lime is now your colour ${message.author}`);
-        console.log(`${message.author.tag} has the lime role now`);
+        message.member.addRole(limeid())
+        message.member.removeRole(roseid())
+        message.member.removeRole(blueskyid())
+        message.member.removeRole(lightvioletid())
+        message.channel.send(`Lime is now your colour ${message.author}`)
+        console.log(`${message.author.tag} now has the lime role now`)
+        logger.info(`ARCHIVE: ${message.author.tag} has the lime role now`);
       }
     } else {
-      message.channel.send(`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`);
-      console.log(`${message.author.tag} Is not a member`);
+      message.channel.send(`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`)
+      console.log(`${message.author.tag} was trying to add the lime role, but is not a member`)
+      logger.info(`ARCHIVE ${message.author.tag} was trying to add the lime role, but is not a member`);
     }
   }
 
   if (command === 'rose') {
     if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
       if (message.member.roles.has(roseid())) {
         message.channel.send('Rose are red, violets are blue, **you already have the rose red role**');
         console.log(`${message.author.tag} had the rose role already`);
+        logger.info(`ARCHIVE: ${message.author.tag} had the rose role already`);
       } else {
         message.member.addRole(roseid());
         message.member.removeRole(limeid());
         message.member.removeRole(blueskyid());
         message.member.removeRole(lightvioletid());
         message.channel.send(`Rose is now your colour ${message.author}`);
-        console.log(`${message.author.tag} has the rose role now`);
+        console.log(`${message.author.tag} now has the rose role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the rose role now`);
       }
     } else {
       message.channel.send(`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`);
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add the rose role, but Is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add the rose role, but Is not a member`);
     }
   }
 
   if (command === 'bluesky') {
     if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
       if (message.member.roles.has(blueskyid())) {
         message.channel.send('Roses are red violets are blue **you already have role colour blue**'); // Thanks Scoop
         console.log(`${message.author.tag} had the blue sky role`);
+        logger.info(`ARCHIVE: ${message.author.tag} had the blue sky role`);
       } else {
         message.member.addRole(blueskyid());
         message.member.removeRole(roseid());
         message.member.removeRole(limeid());
         message.member.removeRole(lightvioletid());
         message.channel.send(`Blue sky is now your colour ${message.author}`);
-        console.log(`${message.author.tag} has the blue sky role now`);
+        console.log(`${message.author.tag} now has the blue sky role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the blue sky role now`);
       }
     } else {
       message.channel.send(`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`);
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add the blue sky role, but is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add the blue sky role, but is not a member`);
     }
   }
 
   if (command === 'lightviolet') {
     if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
       if (message.member.roles.has(lightvioletid())) {
         message.channel.send('You have light violet');
         console.log(`${message.author.tag} had the light violet role`);
+        logger.info(`ARCHIVE: ${message.author.tag} had the light violet role`);
       } else {
         message.member.addRole(lightvioletid());
         message.member.removeRole(roseid());
@@ -190,10 +224,12 @@ client.on('message', (message) => {
         message.member.removeRole(limeid());
         message.channel.send(`Light violet is now your colour ${message.author}`);
         console.log(`${message.author.tag} has the light violet now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the light violet now`)
       }
     } else {
       message.channel.send(`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`);
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add the light violet role, but is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add the light violet role, but is not a member`)
     }
   }
 
@@ -203,18 +239,22 @@ client.on('message', (message) => {
         message.member.removeRole(lightvioletid());
         message.channel.send(`light violet has been removed ${message.author}`);
         console.log(`${message.author.tag} Has removed light violet`);
+        logger.info(`ARCHIVE: ${message.author.tag} Has removed light violet`);
       } else if (message.member.roles.has(blueskyid())) {
         message.member.removeRole(blueskyid());
         message.channel.send(`Blue Sky has been removed ${message.author}`);
         console.log(`${message.author.tag} Has removed sky blue`);
+        logger.info(`ARCHIVE: ${message.author.tag} Has removed Blue sky`);
       } else if (message.member.roles.has(roseid())) {
         message.member.removeRole(roseid());
         message.channel.send(`rose has been removed ${message.author}`);
         console.log(`${message.author.tag} Has removed rose`);
+        logger.info(`ARCHIVE: ${message.author.tag} Has removed Rose`);
       } else if (message.member.roles.has(limeid())) {
         message.member.removeRole(limeid());
         message.channel.send(`lime has been removed ${message.author}`);
         console.log(`${message.author.tag} Have removed lime`);
+        logger.info(`ARCHIVE: ${message.author.tag} Has removed Lime`);
       } else {
         message.channel.send(`You dont have a colour asignd ${message.author}`);
       }
@@ -229,273 +269,305 @@ client.on('message', (message) => {
 
   if (command === 'gay') {
     if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
       if (message.member.roles.has(gayid())) {
         message.channel.send(`You already have the gay role ${message.author}`);
         console.log(`${message.author.tag} had the gay role already`);
+        logger.info(`ARCHIVE: ${message.author.tag} had the gay role already`);
       } else {
         message.member.addRole(gayid());
         message.channel.send(`Gay role has been added ${message.author}`);
         console.log(`${message.author.tag} has the gay role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the gay role now`);
       }
     } else {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
     }
   }
 
   if (command === 'straight') {
     if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
       if (message.member.roles.has(straightid())) {
         message.channel.send(`You already have the straight role ${message.author}`);
         console.log(`${message.author.tag} had the straight role already`);
+        logger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
       } else {
         message.member.addRole(straightid());
         message.channel.send(`Straight has been added ${message.author}`);
         console.log(`${message.author.tag} has the straight role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the straight role now`);
       }
     } else {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
+      logger.info(`ACRHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
     }
   }
 
   if (command === 'bi') {
     if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
       if (message.member.roles.has(bisexualid())) {
         message.channel.send(`you already have the bisexual role ${message.author}`);
         console.log(`${message.author.tag} had the bisexual role already`);
+        logger.info(`ARCHIVE: ${message.author.tag} had the bisexual role already`);
       } else {
         message.member.addRole(bisexualid());
         message.channel.send(`Bisexual has been added ${message.author}`);
         console.log(`${message.author.tag} has the bisexual role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the bisexual role now`);
       }
     } else {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
     }
   }
 
   if (command === 'asex') {
-    if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
+    if (message.member.roles.has(memberid())) {      
       if (message.member.roles.has(asexualid())) {
         message.channel.send(`You already have the asexual role ${message.author}`);
         console.log(`${message.author.tag} had the asexual role already`);
+        logger.info(`ARCHIVE: ${message.author.tag} had the asexual role already`);
       } else {
         message.member.addRole(asexualid());
         message.channel.send(`Asexual has been added ${message.author}`);
         console.log(`${message.author.tag} has the asexual role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the asexual role now`);
       }
     } else {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
     }
   }
 
   if (command === 'pan') {
-    if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
+    if (message.member.roles.has(memberid())) {      
       if (message.member.roles.has(pansexualid())) {
         message.channel.send(`You already have the pansexual role ${message.author}`);
         console.log(`${message.author.tag} had the pansexual role already`);
+        logger.info(`ARCHIVE: ${message.author.tag} had the pansexual role already`);
       } else {
         message.member.addRole(pansexualid());
         message.channel.send(`Pansexual role has been added ${message.author}`);
         console.log(`${message.author.tag} has the pansexual role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the pansexual role now`);
       }
     } else {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
     }
   }
 
   if (command === 'female') {
-    if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
+    if (message.member.roles.has(memberid())) {      
       if (message.member.roles.has(femaleid())) {
         message.channel.send(`You already have the female role ${message.author}`);
         console.log(`${message.author.tag} had the female role already`);
+        logger.info(`ARCHIVE: ${message.author.tag} had the female role already`);
       } else {
         message.member.addRole(femaleid());
         message.channel.send(`Female role has been added ${message.author}`);
         console.log(`${message.author.tag} has the female role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the female role now`);
       }
     } else {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
     }
   }
 
   if (command === 'male') {
-    if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
+    if (message.member.roles.has(memberid())) {      
       if (message.member.roles.has(maleid())) {
         message.channel.send(`You already have the male role ${message.author}`);
         console.log(`${message.author.tag} had the male role already`);
+        logger.info(`ARCHIVE: ${message.author.tag} had the male role already`);
       } else {
         message.member.addRole(maleid());
         message.channel.send(`Male role has been added ${message.author}`);
         console.log(`${message.author.tag} has the male role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the male role now`);
       }
     } else {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
     }
   }
 
   if (command === 'nonbinary') {
-    if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
+    if (message.member.roles.has(memberid())) {      
       if (message.member.roles.has(nonbinaryid())) {
         message.channel.send(`You already have the non binary role ${message.author}`);
         console.log(`${message.author.tag} had the non binary role already`);
+        logger.info(`ARCHIVE: ${message.author.tag} had the non binary role already`);
       } else {
         message.member.addRole(nonbinaryid());
         message.channel.send(`Non binary role has been added ${message.author}`);
         console.log(`${message.author.tag} has the non binary role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the non binary role now`);
       }
     } else {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
     }
   }
 
   if (command === 'fluid') {
-    if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
+    if (message.member.roles.has(memberid())) {      
       if (message.member.roles.has(genderfluidid())) {
         message.channel.send(`You already have the gender fluid role ${message.author}`);
         console.log(`${message.author.tag} had the gender fluid role already`);
+        logger.info(`ARCHIVE: ${message.author.tag} had the gender fluid role already`);
       } else {
         message.member.addRole(genderfluidid());
         message.channel.send(`Gender fluid has been added ${message.author}`);
         console.log(`${message.author.tag} has the gender fluid role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the gender fluid role now`);
       }
     } else {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
     }
   }
 
   if (command === 'trans') {
-    if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
+    if (message.member.roles.has(memberid())) {      
       if (message.member.roles.has(transid())) {
         message.channel.send(`You already have the trans role ${message.author}`);
         console.log(`${message.author.tag} had the trans role already`);
+        logger.info(`ARCHIVE: ${message.author.tag} had the trans role already`);
       } else {
         message.member.addRole(transid());
         message.channel.send(`Trans has been added ${message.author}`);
         console.log(`${message.author.tag} has the trans role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the trans role now`);
       }
     } else {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
     }
   }
 
   if (command === 'hehim') {
-    if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
+    if (message.member.roles.has(memberid())) {      
       if (message.member.roles.has(hehimid())) {
         message.channel.send(`You already have the He/Him role ${message.author}`);
         console.log(`${message.author.tag} had the He/Him role already`);
+        logger.info(`ARCHIVE: ${message.author.tag} had the He/Him role already`);
       } else {
         message.member.addRole(hehimid());
         message.channel.send(`He/Him has been added ${message.author}`);
         console.log(`${message.author.tag} has the He/Him role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the He/Him role now`);
       }
     } else {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
     }
   }
 
   if (command === 'sheher') {
-    if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
+    if (message.member.roles.has(memberid())) {      
       if (message.member.roles.has(sheherid())) {
         message.channel.send(`You already have the She/Her role ${message.author}`);
         console.log(`${message.author.tag} had the She/Her role already`);
+        logger.info(`ARCHIVE: ${message.author.tag} had the She/Her role already`);
       } else {
         message.member.addRole(sheherid());
         message.channel.send(`She/Her role has been added ${message.author}`);
         console.log(`${message.author.tag} has the She/Her role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the She/Her role now`);
       }
     } else {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
     }
   }
 
   if (command === 'theythem') {
-    if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
+    if (message.member.roles.has(memberid())) {      
       if (message.member.roles.has(theythemid())) {
         message.channel.send(`You already have the They/Them role ${message.author}`);
         console.log(`${message.author.tag} had the They/Them role already`);
+        logger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
       } else {
         message.member.addRole(theythemid());
         message.channel.send(`They/Them has been added ${message.author}`);
         console.log(`${message.author.tag} has the They/Them role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the They/Them role now`);
       }
     } else {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
     }
   }
 
   if (command === 'musician') {
-    if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
+    if (message.member.roles.has(memberid())) {      
       if (message.member.roles.has(musicianid())) {
         message.channel.send(`You already have the musician role ${message.author}`);
         console.log(`${message.author.tag} had the ${message.content.slice(config.prefix.length)} role already`);
+        logger.info(`ARCHIVE: ${message.author.tag} had the ${message.content.slice(config.prefix.length)} role already`);
       } else {
         message.member.addRole(musicianid());
         message.channel.send(`Musician has been added ${message.author}`);
         console.log(`${message.author.tag} has the musician role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the musician role now`);
       }
     } else {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
     }
   }
 
   if (command === 'artist') {
-    if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
+    if (message.member.roles.has(memberid())) {      
       if (message.member.roles.has(artistid())) {
         message.channel.send(`You already have the artist role ${message.author}`);
         console.log(`${message.author.tag} had the artist role already`);
+        logger.info(`ARCHIVE: ${message.author.tag} had the artist role already`);
       } else {
         message.member.addRole(artistid());
         message.channel.send(`artist has been added ${message.author}`);
         console.log(`${message.author.tag} has the artist role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the artist role now`);
       }
     } else {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
     }
   }
 
   if (command === 'memetrash') {
     if (message.member.roles.has(memberid())) {
-      console.log(`${message.author.tag} has the members role!`);
       if (message.member.roles.has(memetrashid())) {
         message.channel.send(`You already have the meme trash role ${message.author}`);
         console.log(`${message.author.tag} had the meme trash role already`);
+        logger.info(`ARCHIVE: ${message.author.tag} had the meme trash role already`);
       } else {
         message.member.addRole(memetrashid());
         message.channel.send(`Meme Trash role has been added ${message.author}`);
         console.log(`${message.author.tag} has the meme trash role now`);
+        logger.info(`ARCHIVE: ${message.author.tag} has the meme trash role now`);
       }
     } else {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} Is not a member`);
+      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
     }
   }
 
@@ -571,7 +643,13 @@ client.on('message', (message) => {
   }
 
   if (command === 'ping') {
-    message.channel.send(`Ping is ${Math.round(client.ping)}ms`);
+    message.channel.send(`Ping is ${Math.round(client.ping)}ms`)
+    logger.info(`ping is ${Math.round(client.ping)}ms`);
+  }
+
+  if (command ==='bug') {
+    logger.debug(`FROM ${message.author.tag} REPORTING ${message.content.slice(config.prefix.length).trim()}`)
+    message.channel.send(`Thanks ${message.author}, that has now been loged.`);
   }
 
   if (command === 'patreon') {
