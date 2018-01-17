@@ -30,7 +30,7 @@ const catcommandList = fs.readFileSync('command lists/catogerycommandlist.txt', 
 const perscommandList = fs.readFileSync('command lists/perscommandlist.txt', 'utf8');
 const othercommandList = fs.readFileSync('command lists/othercommandlist.txt', 'utf8');
 const welcomemsg = fs.readFileSync('txt_files/welcome message.txt', 'utf8');
-const log = fs.readFileSync('BUGS.log', 'utf8');
+const log = fs.readFileSync('Logs.log', 'utf8');
 
 client.login(config.token);
 
@@ -43,15 +43,9 @@ client.on('ready', () => {
 client.on('guildMemberAdd', (member) => {
   console.log(`${member.user.tag} (${member.id}) has joined ${member.guild.name}`)
   logger.info(`ARCHIVE: ${member.user.tag} (${member.id}) has joined ${member.guild.name}`)
-  member.guild.channels.find('name', 'introduce_yourself').send(`${member}`)
-  const embed = new Discord.MessageEmbed()
-    .setColor(0xFEF65B)
-    .setTitle('**Welcome to doddlecord!**')
-    .setImage('https://cdn.discordapp.com/attachments/401431353482280960/401486447414345740/dodie_welcome1.png')
-    .setDescription(welcomemsg);
-  embedwelcome.guild.channels.find('name', 'introduce_yourself').send({ embed });
+  member.guild.channels.find('name', 'introduce_yourself').send(`${member}`);
 });
-/*
+
 client.on('guildMemberAdd', (embedwelcome) => {
   const embed = new Discord.MessageEmbed()
     .setColor(0xFEF65B)
@@ -60,10 +54,10 @@ client.on('guildMemberAdd', (embedwelcome) => {
     .setDescription(welcomemsg);
   embedwelcome.guild.channels.find('name', 'introduce_yourself').send({ embed });
 });
-*/
+
 client.on('guildMemberRemove', (remember) => {
-  console.log(`${remember.user.tag} (${remember.id}) Has left ${remember.guild.name}`)
-  logger.info(`ARCHIVE: ${remember.user.tag} (${remember.id}) Has left ${remember.guild.name}`)
+  console.log(`${remember.user.tag} (${remember.id}) Has left ${remember.guild.name}`);
+  logger.info(`ARCHIVE: ${remember.user.tag} (${remember.id}) Has left ${remember.guild.name}`);
   remember.guild.channels.find('name', 'general').send(`${remember} Has left ${remember.guild.name}, hopefully we see them again soon!`);
 });
 
