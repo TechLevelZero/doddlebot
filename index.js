@@ -13,7 +13,7 @@ const fs = require('fs');
 var log4js = require('log4js');
   log4js.configure({
     appenders: {
-      everything: { type: 'file', filename: 'BUGS.log' }
+      everything: { type: 'file', filename: 'Logs.log' }
     },
     categories: {
       default: { appenders: [ 'everything' ], level: 'debug'},
