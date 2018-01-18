@@ -5,6 +5,14 @@ doddlebot pic.PNG
 .imgs
 imgs/dodie welcome.png
 Logs.log
+.eslint
+.eslint-config-airbnb-base
+.eslint-import-resolver-node
+.eslint-module-utils
+.eslint-plugin-import
+.eslint-restricted-globals
+.eslint-scope
+.eslint-visitor-keys
 
 ### VisualStudioCode ###
 .vscode/*
