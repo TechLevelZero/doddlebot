@@ -13,6 +13,7 @@ Logs.log
 .eslint-restricted-globals
 .eslint-scope
 .eslint-visitor-keys
+.acorn
 
 ### VisualStudioCode ###
 .vscode/*
