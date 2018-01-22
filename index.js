@@ -1,7 +1,7 @@
 /* eslint consistent-return: 0, no-console: 0 */
 
 /*
-doddle bot v1.2 INDEV by Ben Hunter
+doddle bot v1.1.5 INDEV by Ben Hunter
 */
 
 const Discord = require('discord.js');
@@ -10,19 +10,6 @@ const config = require('./config.json');
 
 const fs = require('fs');
 
-var log4js = require('log4js');
-  log4js.configure({
-    appenders: {
-      everything: { type: 'file', filename: 'Logs.log' }
-    },
-    categories: {
-      default: { appenders: [ 'everything' ], level: 'debug'},
-      bug: { appenders: [ 'everything' ], level: 'info'}
-    }
-});
-
-const logger = log4js.getLogger();
-
 const client = new Discord.Client();
 
 const colourcommandList = fs.readFileSync('command lists/colourcommands.txt', 'utf8');
@@ -30,19 +17,41 @@ const catcommandList = fs.readFileSync('command lists/catogerycommandlist.txt', 
 const perscommandList = fs.readFileSync('command lists/perscommandlist.txt', 'utf8');
 const othercommandList = fs.readFileSync('command lists/othercommandlist.txt', 'utf8');
 const welcomemsg = fs.readFileSync('txt_files/welcome message.txt', 'utf8');
-const log = fs.readFileSync('Logs.log', 'utf8');
+const info = fs.readFileSync('logs/info.log', 'utf8');
+const log4js = require('log4js');
+
+log4js.configure({
+  appenders: {
+    multi: {
+      type: 'multiFile', base: 'logs/', property: 'categoryName', extension: '.log',
+    },
+  },
+  categories: {
+    default: { appenders: ['multi'], level: 'info' },
+  },
+});
+
+const logger = log4js.getLogger();
+const errorLogger = log4js.getLogger('errors');
+const infoLogger = log4js.getLogger('info');
 
 client.login(config.token);
 
+client.on('error', console.error);
+
+client.on('error', (error) => {
+  errorLogger.error(`${error}`);
+});
+
 client.on('ready', () => {
-  console.log(`Logged in as ${client.user.tag}!`)
-  console.log(log)
+  console.log(`Logged in as ${client.user.tag}!`);
+  console.log(info);
   console.log('ARCHIVE LOADED');
 });
 
 client.on('guildMemberAdd', (member) => {
-  console.log(`${member.user.tag} (${member.id}) has joined ${member.guild.name}`)
-  logger.info(`ARCHIVE: ${member.user.tag} (${member.id}) has joined ${member.guild.name}`)
+  console.log(`${member.user.tag} (${member.id}) has joined ${member.guild.name}`);
+  logger.info(`ARCHIVE: ${member.user.tag} (${member.id}) has joined ${member.guild.name}`);
   member.guild.channels.find('name', 'introduce_yourself').send(`${member}`);
 });
 
@@ -127,37 +136,36 @@ function memetrashid() {
 
 client.on('message', (message) => {
   if (message.author.bot) {
-    console.log(`${author.user.tag} is a bot`)
-    logger.info(`ARCHIVE: ${author.user.tag} is a bot`);
-  };
+    console.log(`${message.author.tag} is a bot`);
+    logger.info(`ARCHIVE: ${message.author.tag} is a bot`);
+  }
 
   if (message.content.indexOf(config.prefix) !== 0) return;
 
   const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
   const command = args.shift().toLowerCase();
-  const logger = log4js.getLogger();
 
   // colour stuff
 
   if (command === 'lime') {
     if (message.member.roles.has(memberid())) {
       if (message.member.roles.has(limeid())) {
-        message.channel.send('You have lime...you lemon')
-        console.log(`${message.author.tag} had the lime role already`)
+        message.channel.send('You have lime...you lemon');
+        console.log(`${message.author.tag} had the lime role already`);
         logger.info(`ARCHIVE: ${message.author.tag} had the lime role already`);
       } else {
-        message.member.addRole(limeid())
-        message.member.removeRole(roseid())
-        message.member.removeRole(blueskyid())
-        message.member.removeRole(lightvioletid())
-        message.channel.send(`Lime is now your colour ${message.author}`)
-        console.log(`${message.author.tag} now has the lime role now`)
+        message.member.addRole(limeid());
+        message.member.removeRole(roseid());
+        message.member.removeRole(blueskyid());
+        message.member.removeRole(lightvioletid());
+        message.channel.send(`Lime is now your colour ${message.author}`);
+        console.log(`${message.author.tag} now has the lime role now`);
         logger.info(`ARCHIVE: ${message.author.tag} has the lime role now`);
       }
     } else {
-      message.channel.send(`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`)
-      console.log(`${message.author.tag} was trying to add the lime role, but is not a member`)
-      logger.info(`ARCHIVE ${message.author.tag} was trying to add the lime role, but is not a member`);
+      message.channel.send(`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`);
+      console.log(`${message.author.tag} was trying to add the lime role, but is not a member`);
+      infoLogger.info(`ARCHIVE ${message.author.tag} was trying to add the lime role, but is not a member`);
     }
   }
 
@@ -218,12 +226,12 @@ client.on('message', (message) => {
         message.member.removeRole(limeid());
         message.channel.send(`Light violet is now your colour ${message.author}`);
         console.log(`${message.author.tag} has the light violet now`);
-        logger.info(`ARCHIVE: ${message.author.tag} has the light violet now`)
+        logger.info(`ARCHIVE: ${message.author.tag} has the light violet now`);
       }
     } else {
       message.channel.send(`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`);
       console.log(`${message.author.tag} was trying to add the light violet role, but is not a member`);
-      logger.info(`ARCHIVE: ${message.author.tag} was trying to add the light violet role, but is not a member`)
+      logger.info(`ARCHIVE: ${message.author.tag} was trying to add the light violet role, but is not a member`);
     }
   }
 
@@ -319,7 +327,7 @@ client.on('message', (message) => {
   }
 
   if (command === 'asex') {
-    if (message.member.roles.has(memberid())) {      
+    if (message.member.roles.has(memberid())) {
       if (message.member.roles.has(asexualid())) {
         message.channel.send(`You already have the asexual role ${message.author}`);
         console.log(`${message.author.tag} had the asexual role already`);
@@ -338,7 +346,7 @@ client.on('message', (message) => {
   }
 
   if (command === 'pan') {
-    if (message.member.roles.has(memberid())) {      
+    if (message.member.roles.has(memberid())) {
       if (message.member.roles.has(pansexualid())) {
         message.channel.send(`You already have the pansexual role ${message.author}`);
         console.log(`${message.author.tag} had the pansexual role already`);
@@ -357,7 +365,7 @@ client.on('message', (message) => {
   }
 
   if (command === 'female') {
-    if (message.member.roles.has(memberid())) {      
+    if (message.member.roles.has(memberid())) {
       if (message.member.roles.has(femaleid())) {
         message.channel.send(`You already have the female role ${message.author}`);
         console.log(`${message.author.tag} had the female role already`);
@@ -376,7 +384,7 @@ client.on('message', (message) => {
   }
 
   if (command === 'male') {
-    if (message.member.roles.has(memberid())) {      
+    if (message.member.roles.has(memberid())) {
       if (message.member.roles.has(maleid())) {
         message.channel.send(`You already have the male role ${message.author}`);
         console.log(`${message.author.tag} had the male role already`);
@@ -395,7 +403,7 @@ client.on('message', (message) => {
   }
 
   if (command === 'nonbinary') {
-    if (message.member.roles.has(memberid())) {      
+    if (message.member.roles.has(memberid())) {
       if (message.member.roles.has(nonbinaryid())) {
         message.channel.send(`You already have the non binary role ${message.author}`);
         console.log(`${message.author.tag} had the non binary role already`);
@@ -414,7 +422,7 @@ client.on('message', (message) => {
   }
 
   if (command === 'fluid') {
-    if (message.member.roles.has(memberid())) {      
+    if (message.member.roles.has(memberid())) {
       if (message.member.roles.has(genderfluidid())) {
         message.channel.send(`You already have the gender fluid role ${message.author}`);
         console.log(`${message.author.tag} had the gender fluid role already`);
@@ -433,7 +441,7 @@ client.on('message', (message) => {
   }
 
   if (command === 'trans') {
-    if (message.member.roles.has(memberid())) {      
+    if (message.member.roles.has(memberid())) {
       if (message.member.roles.has(transid())) {
         message.channel.send(`You already have the trans role ${message.author}`);
         console.log(`${message.author.tag} had the trans role already`);
@@ -452,7 +460,7 @@ client.on('message', (message) => {
   }
 
   if (command === 'hehim') {
-    if (message.member.roles.has(memberid())) {      
+    if (message.member.roles.has(memberid())) {
       if (message.member.roles.has(hehimid())) {
         message.channel.send(`You already have the He/Him role ${message.author}`);
         console.log(`${message.author.tag} had the He/Him role already`);
@@ -471,7 +479,7 @@ client.on('message', (message) => {
   }
 
   if (command === 'sheher') {
-    if (message.member.roles.has(memberid())) {      
+    if (message.member.roles.has(memberid())) {
       if (message.member.roles.has(sheherid())) {
         message.channel.send(`You already have the She/Her role ${message.author}`);
         console.log(`${message.author.tag} had the She/Her role already`);
@@ -490,7 +498,7 @@ client.on('message', (message) => {
   }
 
   if (command === 'theythem') {
-    if (message.member.roles.has(memberid())) {      
+    if (message.member.roles.has(memberid())) {
       if (message.member.roles.has(theythemid())) {
         message.channel.send(`You already have the They/Them role ${message.author}`);
         console.log(`${message.author.tag} had the They/Them role already`);
@@ -509,7 +517,7 @@ client.on('message', (message) => {
   }
 
   if (command === 'musician') {
-    if (message.member.roles.has(memberid())) {      
+    if (message.member.roles.has(memberid())) {
       if (message.member.roles.has(musicianid())) {
         message.channel.send(`You already have the musician role ${message.author}`);
         console.log(`${message.author.tag} had the ${message.content.slice(config.prefix.length)} role already`);
@@ -528,7 +536,7 @@ client.on('message', (message) => {
   }
 
   if (command === 'artist') {
-    if (message.member.roles.has(memberid())) {      
+    if (message.member.roles.has(memberid())) {
       if (message.member.roles.has(artistid())) {
         message.channel.send(`You already have the artist role ${message.author}`);
         console.log(`${message.author.tag} had the artist role already`);
@@ -637,13 +645,13 @@ client.on('message', (message) => {
   }
 
   if (command === 'ping') {
-    message.channel.send(`Ping is ${Math.round(client.ping)}ms`)
+    message.channel.send(`Ping is ${Math.round(client.ping)}ms`);
     logger.info(`ping is ${Math.round(client.ping)}ms`);
   }
 
-  if (command ==='bug') {
-    logger.debug(`ARCHIVE: ${message.author.tag} REPORTING ${message.content.slice(config.prefix.length).trim()}`)
-    console.log(`${message.author.tag} REPORTING ${message.content.slice(config.prefix.length).trim()}`)
+  if (command === 'bug') {
+    logger.debug(`ARCHIVE: ${message.author.tag} REPORTED ${message.content.slice(config.prefix.length).trim()}`);
+    console.log(`${message.author.tag} REPORTING ${message.content.slice(config.prefix.length).trim()}`);
     message.channel.send(`Thanks ${message.author}, that has now been logged.`);
   }
 
