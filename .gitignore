@@ -103,3 +103,5 @@ typings/
 
 # dotenv environment variables file
 .env
+
+auto member requirements/
