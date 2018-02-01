@@ -1,7 +1,7 @@
 /* eslint consistent-return: 0, no-console: 0 */
 
 /*
-doddlebot 1.1.6 by Ben Hunter
+doddlebot 1.1.7 by Ben Hunter
 */
 
 const Discord = require('discord.js');
@@ -11,13 +11,17 @@ const config = require('./config.json');
 const fs = require('fs');
 
 const client = new Discord.Client();
-
+// files
 const colourcommandList = fs.readFileSync('command lists/colourcommands.txt', 'utf8');
 const catcommandList = fs.readFileSync('command lists/catogerycommandlist.txt', 'utf8');
 const perscommandList = fs.readFileSync('command lists/perscommandlist.txt', 'utf8');
 const othercommandList = fs.readFileSync('command lists/othercommandlist.txt', 'utf8');
 const welcomemsg = fs.readFileSync('txt_files/welcome message.txt', 'utf8');
 const info = fs.readFileSync('logs/info.log', 'utf8');
+const a = fs.readFileSync('Auto Member Requirements/a.txt');
+const b = fs.readFileSync('Auto Member Requirements/b.txt');
+const c = fs.readFileSync('Auto Member Requirements/c.txt');
+const d = fs.readFileSync('Auto Member Requirements/d.txt');
 const log4js = require('log4js');
 
 // emojis
@@ -116,6 +120,9 @@ function nonbinaryid() {
 function genderfluidid() {
   return '399706766914486282';
 }
+function agenderid() {
+  return '407926177534312449';
+}
 function transid() {
   return '399633051111653376';
 }
@@ -147,10 +154,25 @@ function modsid() {
 client.on('message', (message) => {
   if (message.author.bot) return;
 
-  if (message.content.indexOf(config.prefix) !== 0) return;
-
   const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
   const command = args.shift().toLowerCase();
+
+  if (message.member.roles.has(memberid())) {
+    // ESlint is a bitch
+  } else if (message.content.toLowerCase().match(a)) {
+    if (message.content.toLowerCase().match(b)) {
+      if (message.content.toLowerCase().match(c)) {
+        if (message.content.toLowerCase().match(d)) {
+          message.member.addRole(memberid());
+          message.channel.send('Your intro was so good I was able to tell!, I have added you as a member. Wellcome to doddlecord!');
+          console.log(`${message.author.tag} has been added by doddlebot`);
+          infoLogger.info(`ARCHIVE: ${message.author.tag} had been added by doddlebot`);
+        } else return;
+      } else return;
+    } else return;
+  } else return;
+
+  if (message.content.indexOf(config.prefix) !== 0) return;
 
   // colour stuff
 
@@ -466,6 +488,25 @@ client.on('message', (message) => {
     }
   }
 
+  if (command === 'agender') {
+    if (message.member.roles.has(memberid())) {
+      if (message.member.roles.has(agenderid())) {
+        message.channel.send(`You already have the agender role ${message.author}`);
+        console.log(`${message.author.tag} had the agender role already`);
+        infoLogger.info(`ARCHIVE: ${message.author.tag} had the agender role already`);
+      } else {
+        message.member.addRole(agenderid());
+        message.channel.send(`agender has been added ${message.author}`);
+        console.log(`${message.author.tag} has the agender role now`);
+        infoLogger.info(`ARCHIVE: ${message.author.tag} has the agender role now`);
+      }
+    } else {
+      message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
+      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
+      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
+    }
+  }
+
   if (command === 'hehim') {
     if (message.member.roles.has(memberid())) {
       if (message.member.roles.has(hehimid())) {
@@ -672,6 +713,15 @@ client.on('message', (message) => {
         files: ['./logs/info.log'],
       });
     } else return;
+  }
+
+  if (command === 'welcomeembedtest') {
+    const embed = new Discord.MessageEmbed()
+      .setColor(0xFEF65B)
+      .setTitle('**Welcome to doddlecord!**')
+      .setImage('https://cdn.discordapp.com/attachments/401431353482280960/401486447414345740/dodie_welcome1.png')
+      .setDescription(welcomemsg);
+    message.channel.send({ embed });
   }
 
   if (command === 'errors') {
