@@ -1,12 +1,23 @@
 /* eslint consistent-return: 0, no-console: 0 */
 
-/*
-doddlebot 1.1.7 by Ben Hunter
-*/
+
+// doddlebot 1.1.7 by Ben Hunter
+
 
 const Discord = require('discord.js');
 
 const config = require('./config.json');
+
+const mysql = require('mysql');
+
+const con = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: config.mysqlpass,
+  database: 'test',
+});
+
+const upsidedown = require('upsidedown');
 
 const fs = require('fs');
 
@@ -17,67 +28,18 @@ const catcommandList = fs.readFileSync('command lists/catogerycommandlist.txt', 
 const perscommandList = fs.readFileSync('command lists/perscommandlist.txt', 'utf8');
 const othercommandList = fs.readFileSync('command lists/othercommandlist.txt', 'utf8');
 const welcomemsg = fs.readFileSync('txt_files/welcome message.txt', 'utf8');
+const uk = fs.readFileSync('txt_files/uk.txt', 'utf8');
+const us = fs.readFileSync('txt_files/us.txt', 'utf8');
 const info = fs.readFileSync('logs/info.log', 'utf8');
-const a = fs.readFileSync('Auto Member Requirements/a.txt');
-const b = fs.readFileSync('Auto Member Requirements/b.txt');
-const c = fs.readFileSync('Auto Member Requirements/c.txt');
-const d = fs.readFileSync('Auto Member Requirements/d.txt');
+const a = fs.readFileSync('auto member requirements/a.txt');
+const b = fs.readFileSync('auto member requirements/b.txt');
+const c = fs.readFileSync('auto member requirements/c.txt');
+const d = fs.readFileSync('auto member requirements/d.txt');
 const log4js = require('log4js');
 
-// emojis
-// const doddleoddleemot = client.emojis.get("406267153843486720");
-
-log4js.configure({
-  appenders: {
-    multi: {
-      type: 'multiFile', base: 'logs/', property: 'categoryName', extension: '.log',
-    },
-  },
-  categories: {
-    default: { appenders: ['multi'], level: 'info' },
-  },
-});
-
-const errorLogger = log4js.getLogger('fatal');
-const infoLogger = log4js.getLogger('info');
-const bugLogger = log4js.getLogger('debug');
-
-client.login(config.token);
-
-client.on('error', console.error);
-
-client.on('error', (error) => {
-  errorLogger.fatal(`${error}`);
-});
-
-client.on('ready', () => {
-  client.user.setActivity('dodie on repeat', { type: 'LISTENING' });
-  console.log(`Logged in as ${client.user.username}`);
-  console.log(info);
-  console.log('ARCHIVE LOADED');
-});
-
-client.on('guildMemberAdd', (member) => {
-  console.log(`${member.user.tag} (${member.id}) has joined ${member.guild.name}`);
-  infoLogger.info(`ARCHIVE: ${member.user.tag} (${member.id}) has joined ${member.guild.name}`);
-  member.guild.channels.find('name', 'introduce_yourself').send(`${member}`);
-});
-
-client.on('guildMemberAdd', (embedwelcome) => {
-  const embed = new Discord.MessageEmbed()
-    .setColor(0xFEF65B)
-    .setTitle('**Welcome to doddlecord!**')
-    .setImage('https://cdn.discordapp.com/attachments/401431353482280960/401486447414345740/dodie_welcome1.png')
-    .setDescription(welcomemsg);
-  embedwelcome.guild.channels.find('name', 'introduce_yourself').send({ embed });
-});
-
-client.on('guildMemberRemove', (remember) => {
-  console.log(`${remember.user.tag} (${remember.id}) Has left ${remember.guild.name}`);
-  infoLogger.info(`ARCHIVE: ${remember.user.tag} (${remember.id}) Has left ${remember.guild.name}`);
-  remember.guild.channels.find('name', 'general').send(`${remember} Has left ${remember.guild.name}, hopefully we see them again soon!`);
-});
-
+function nonmemberid() {
+  return '412766247617429508';
+}
 function memberid() {
   return '337015244050399242';
 }
@@ -151,20 +113,101 @@ function modsid() {
   return '376873845333950477';
 }
 
+// emojis
+// const doddleoddleemot = client.emojis.get("406267153843486720");
+
+con.connect((err) => {
+  if (err) throw err;
+  console.log('Connected to mySQL Server.');
+  console.log('DATABASE = doddlebot');
+});
+
+log4js.configure({
+  appenders: {
+    multi: {
+      type: 'multiFile', base: 'logs/', property: 'categoryName', extension: '.log',
+    },
+  },
+  categories: {
+    default: { appenders: ['multi'], level: 'info' },
+  },
+});
+
+const errorLogger = log4js.getLogger('fatal');
+const infoLogger = log4js.getLogger('info');
+const bugLogger = log4js.getLogger('debug');
+
+client.login(config.token);
+
+client.on('error', console.error);
+
+client.on('error', (error) => {
+  errorLogger.fatal(`${error}`);
+});
+
+client.on('ready', () => {
+  client.user.setActivity('dodie on repeat', { type: 'LISTENING' });
+  console.log(`Logged in as ${client.user.username}`);
+  console.log(info);
+  console.log('ARCHIVE LOADED');
+});
+
+client.on('guildMemberAdd', (member) => {
+  console.log(`${member.user.tag} (${member.id}) has joined ${member.guild.name}`);
+  infoLogger.info(`ARCHIVE: ${member.user.tag} (${member.id}) has joined ${member.guild.name}`);
+  member.guild.channels.find('name', 'introduce_yourself').send(`${member}`);
+  member.addRole(nonmemberid());
+});
+
+client.on('guildMemberAdd', (embedwelcome) => {
+  const embed = new Discord.MessageEmbed()
+    .setColor(0xFEF65B)
+    .setTitle('**Welcome to doddlecord!**')
+    .setImage('https://cdn.discordapp.com/attachments/401431353482280960/401486447414345740/dodie_welcome1.png')
+    .setDescription(welcomemsg);
+  embedwelcome.guild.channels.find('name', 'introduce_yourself').send({ embed });
+});
+
+client.on('guildMemberRemove', (remember) => {
+  console.log(`${remember.user.tag} (${remember.id}) Has left ${remember.guild.name}`);
+  infoLogger.info(`ARCHIVE: ${remember.user.tag} (${remember.id}) Has left ${remember.guild.name}`);
+  remember.guild.channels.find('name', 'general').send(`${remember} Has left ${remember.guild.name}, hopefully we see them again soon!`);
+});
+
+
 client.on('message', (message) => {
   if (message.author.bot) return;
 
   const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
   const command = args.shift().toLowerCase();
 
+  con.query(`SELECT * FROM userpoints WHERE name = "${message.author.id}"`, (err1, result) => {
+    if (err1) throw err1;
+    if (result.length > 0) {
+      const sql = `UPDATE userpoints SET points = points + 10 WHERE name = "${message.author.id}"`;
+      con.query(sql, (err2, result1) => {
+        if (err2) throw err2;
+        console.log('1 record updated');
+      });
+    } else {
+      const newUser = [
+        [`${message.author.id}`, `${message.author.tag}`, 0],
+      ];
+      con.query('INSERT INTO userpoints (`name`,`username`, `points`) VALUES ?', [newUser], (err3, rows, fields) => {
+        if (err3) throw err3;
+        console.log('1 record inserted');
+      });
+    }
+  });
+
   if (message.member.roles.has(memberid())) {
-    // ESlint is a bitch
+    // ESlint
   } else if (message.content.toLowerCase().match(a)) {
     if (message.content.toLowerCase().match(b)) {
       if (message.content.toLowerCase().match(c)) {
         if (message.content.toLowerCase().match(d)) {
           message.member.addRole(memberid());
-          message.channel.send('Your intro was so good I was able to tell!, I have added you as a member. Wellcome to doddlecord!');
+          message.channel.send('Your intro was so good I was able to tell!, I have added you as a member. Welcome to doddlecord!');
           console.log(`${message.author.tag} has been added by doddlebot`);
           infoLogger.info(`ARCHIVE: ${message.author.tag} had been added by doddlebot`);
         } else return;
@@ -631,9 +674,8 @@ client.on('message', (message) => {
       .addField('Members', `${message.guild.memberCount - message.guild.members.filter(member => member.user.bot).size} Members`)
       .addField('Bots', `${message.guild.members.filter(member => member.user.bot).size} Bots`)
       .addField('Channels', `${message.guild.channels.filter(chan => chan.type === 'voice').size} voice / ${message.guild.channels.filter(chan => chan.type === 'text').size} text`)
-      .addField('Mods', '@96drum @doctorzelda75 @SCಠಠP @emyflorence @philosophicalMoose')
-      .addField('Managers', '@ShaunaSmells @TechLevelZero @Metakarp @Jaydork')
-      .setFooter('d!patreon');
+      .addField('Mods', '@96drum @doctorzelda75 @emyflorence @philosophicalMoose')
+      .addField('Managers', '@ShaunaSmells @TechLevelZero @Metakarp');
     message.channel.send({ embed });
   }
 
@@ -653,8 +695,7 @@ client.on('message', (message) => {
       .setTitle('**Help**')
       .setDescription('Looking for help? yes...well look below for the category you need help with!')
       .setThumbnail('https://pbs.twimg.com/media/DTDcEe-W4AUqV8D.jpg:large')
-      .addField('**Commands**', (catcommandList))
-      .setFooter('d!patreon');
+      .addField('**Commands**', (catcommandList));
     message.channel.send({ embed });
   }
 
@@ -687,8 +728,23 @@ client.on('message', (message) => {
       .addField('**Category Commands**', (catcommandList))
       .addField('**Other Commands**', (othercommandList))
       .addField('**Colour Commands**', (colourcommandList))
-      .addField('**Personal Commands**', (perscommandList))
-      .setFooter('d!patreon');
+      .addField('**Personal Commands**', (perscommandList));
+    message.channel.send({ embed });
+  }
+
+  if (command === 'ukhelplines') {
+    const embed = new Discord.MessageEmbed()
+      .setColor(0xFEF65B)
+      .setTitle('UK Helplines')
+      .setDescription(uk);
+    message.channel.send({ embed });
+  }
+
+  if (command === 'ushelplines') {
+    const embed = new Discord.MessageEmbed()
+      .setColor(0xFEF65B)
+      .setTitle('USA Helplines')
+      .setDescription(us);
     message.channel.send({ embed });
   }
 
@@ -715,15 +771,6 @@ client.on('message', (message) => {
     } else return;
   }
 
-  if (command === 'welcomeembedtest') {
-    const embed = new Discord.MessageEmbed()
-      .setColor(0xFEF65B)
-      .setTitle('**Welcome to doddlecord!**')
-      .setImage('https://cdn.discordapp.com/attachments/401431353482280960/401486447414345740/dodie_welcome1.png')
-      .setDescription(welcomemsg);
-    message.channel.send({ embed });
-  }
-
   if (command === 'errors') {
     if (message.member.roles.has(managersjoshesid())) {
       message.guild.channels.find('name', 'secrets-for-the-mods').send('Error Log File', {
@@ -736,7 +783,52 @@ client.on('message', (message) => {
     } else return;
   }
 
+  function run() {
+    const embed = new Discord.MessageEmbed()
+      .setColor(0xFEF65B)
+      .setTitle('**Welcome to doddlecord!**')
+      .setImage('https://cdn.discordapp.com/attachments/401431353482280960/401486447414345740/dodie_welcome1.png')
+      .setDescription(welcomemsg);
+    message.channel.send({ embed });
+  }
+
+  if (command === 'points') {
+    con.query(`SELECT * FROM userpoints WHERE name = "${message.author.id}"`, (err, result) => {
+      const resultJsonObj = JSON.stringify(result);
+      const findPoints = resultJsonObj.indexOf('points');
+      const pointsReturn = resultJsonObj.slice(findPoints, -3);
+      message.channel.send(`You have ${pointsReturn.slice(9)} Points ${message.author}`);
+    });
+  }
+
+  if (command === 'welcomeembedtest') {
+    if (message.member.roles.has(managersjoshesid())) {
+      run();
+    }
+    if (message.member.roles.has(modsid())) {
+      run();
+    }
+  }
+
+  if (command === 'flip') {
+    if (message.content.toLowerCase().match('@')) {
+      if (message.content.toLowerCase().match('<')) {
+        if (message.content.toLowerCase().match('394424134337167360')) {
+          message.channel.send("Oh you think thats funny do you? How's about this!");
+          message.channel.send(upsidedown(`${message.author.tag.substr(0, message.author.tag.length - 5)} ︵╯）°□°╯)`));
+        } else {
+          message.channel.send(upsidedown(`${message.cleanContent.substr(8, message.cleanContent.length - 0)} ︵╯）°□°╯)`));
+        }
+      } else {
+        message.channel.send('How to use: `d!flip @user');
+      }
+    } else {
+      message.channel.send('How to use: `d!flip @user`');
+    }
+  }
+
   if (command === 'patreon') {
     message.channel.send('Support the bots @-----> <https://www.patreon.com/benhunter>');
   }
 });
+
