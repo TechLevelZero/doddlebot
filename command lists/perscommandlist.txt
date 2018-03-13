@@ -1,33 +1,34 @@
 
-d!gay
+Gay
 
-d!straight
+Straight
 
-d!bi
+Bisexual
 
-d!asex
+Asexual
 
-d!pan
+Pansexual
 
-d!female
+Female
 
-d!male
+Male
 
-d!nonbinary
+Nonbinary
 
-d!fluid
+Agender
 
-d!trans
+Fluid
 
-d!hehim
+Transsexual
 
-d!sheher
+Hehim
 
-d!theythem
+Sheher
 
-d!musician
+Theythem
 
-d!artist
+Musician
 
-d!memetrash
-_____
+Artist
+
+Memetrash

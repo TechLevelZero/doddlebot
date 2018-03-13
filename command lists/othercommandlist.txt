@@ -3,5 +3,18 @@ d!help  -   `You will never guess what this does!`
 
 d!serverinfo   -   `Shows basic info about doddlecord`
 
-d!ping   -   `shows the delay from you to doddlebot back to you again`
-_____
+d!ping   -   `shows the delay of doddlebot`
+
+d!flip    -    `Flips a users name. use: d!flip @user`
+
+d!bug    -    `This is for reporting bugs for doddlebot`
+
+d!top10    -    `This shows you the top 10 memmbers`
+
+d!rank    -    `Shows your rank and how many points to the next level!`
+
+d!ukhelpline    -     `UK Helplines`
+
+d!ushelpline    - `US Helplines`
+
+d!patreon    -    `my patreon`

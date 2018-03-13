@@ -1,11 +1,17 @@
 
-d!lime
+use `d!colour` then with a space then your colour
+E.G:
+```css
+d!colour lime
+```
+**Colours we have!**
 
-d!rose
+lime
 
-d!bluesky
+rose
 
-d!lightviolet
+bluesky
 
-d!removecolour
-_____
+lightviolet
+
+remove `[this removes your colour]`
