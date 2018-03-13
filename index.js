@@ -1,125 +1,32 @@
 /* eslint consistent-return: 0, no-console: 0 */
 
-
 // doddlebot 1.1.7 by Ben Hunter
-
 
 const Discord = require('discord.js');
 
 const config = require('./config.json');
 
+const role = require('./roles.json');
+
 const mysql = require('mysql');
 
-const con = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: config.mysqlpass,
-  database: 'test',
-});
+const Cleverbot = require('cleverbot-node');
 
 const upsidedown = require('upsidedown');
 
 const fs = require('fs');
 
-const client = new Discord.Client();
-// files
-const colourcommandList = fs.readFileSync('command lists/colourcommands.txt', 'utf8');
-const catcommandList = fs.readFileSync('command lists/catogerycommandlist.txt', 'utf8');
-const perscommandList = fs.readFileSync('command lists/perscommandlist.txt', 'utf8');
-const othercommandList = fs.readFileSync('command lists/othercommandlist.txt', 'utf8');
-const welcomemsg = fs.readFileSync('txt_files/welcome message.txt', 'utf8');
-const uk = fs.readFileSync('txt_files/uk.txt', 'utf8');
-const us = fs.readFileSync('txt_files/us.txt', 'utf8');
-const info = fs.readFileSync('logs/info.log', 'utf8');
-const a = fs.readFileSync('auto member requirements/a.txt');
-const b = fs.readFileSync('auto member requirements/b.txt');
-const c = fs.readFileSync('auto member requirements/c.txt');
-const d = fs.readFileSync('auto member requirements/d.txt');
 const log4js = require('log4js');
 
-function nonmemberid() {
-  return '412766247617429508';
-}
-function memberid() {
-  return '337015244050399242';
-}
-function limeid() {
-  return '398201146461782016';
-}
-function roseid() {
-  return '398201181987667971';
-}
-function blueskyid() {
-  return '398301340691857408';
-}
-function lightvioletid() {
-  return '398201219367305216';
-}
-function gayid() {
-  return '399632904872787968';
-}
-function straightid() {
-  return '399632983675502593';
-}
-function bisexualid() {
-  return '399633024062455809';
-}
-function asexualid() {
-  return '399688708921622530';
-}
-function pansexualid() {
-  return '399689139131514891';
-}
-function femaleid() {
-  return '399633209417138186';
-}
-function maleid() {
-  return '399633179314749440';
-}
-function nonbinaryid() {
-  return '399633884993683468';
-}
-function genderfluidid() {
-  return '399706766914486282';
-}
-function agenderid() {
-  return '407926177534312449';
-}
-function transid() {
-  return '399633051111653376';
-}
-function hehimid() {
-  return '399633081155452939';
-}
-function sheherid() {
-  return '399633116739665940';
-}
-function theythemid() {
-  return '399633143675486219';
-}
-function musicianid() {
-  return '388482661158617098';
-}
-function artistid() {
-  return '388482403942924309';
-}
-function memetrashid() {
-  return '388482825793306626';
-}
-function managersjoshesid() {
-  return '337016459429412865';
-}
-function modsid() {
-  return '376873845333950477';
-}
+const clbot = new Cleverbot();
 
-// emojis
-// const doddleoddleemot = client.emojis.get("406267153843486720");
+clbot.configure({ botapi: config.cleverbotapikey });
 
-con.connect((err) => {
-  if (err) throw err;
-  console.log('Connected to mySQL Server.');
-  console.log('DATABASE = doddlebot');
+const con = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: config.mysqlpass,
+  database: 'doddlecord',
 });
 
 log4js.configure({
@@ -136,6 +43,31 @@ log4js.configure({
 const errorLogger = log4js.getLogger('fatal');
 const infoLogger = log4js.getLogger('info');
 const bugLogger = log4js.getLogger('debug');
+
+const client = new Discord.Client();
+// files
+const colourcommandList = fs.readFileSync('command lists/colourcommands.txt', 'utf8');
+const catcommandList = fs.readFileSync('command lists/catogerycommandlist.txt', 'utf8');
+const perscommandList = fs.readFileSync('command lists/perscommandlist.txt', 'utf8');
+const othercommandList = fs.readFileSync('command lists/othercommandlist.txt', 'utf8');
+const colouruse = fs.readFileSync('txt_files/colouruse.txt', 'utf8');
+const welcomemsg = fs.readFileSync('txt_files/welcome message.txt', 'utf8');
+const uk = fs.readFileSync('txt_files/uk.txt', 'utf8');
+const us = fs.readFileSync('txt_files/us.txt', 'utf8');
+const info = fs.readFileSync('logs/info.log', 'utf8');
+const a = fs.readFileSync('auto member requirements/a.txt');
+const b = fs.readFileSync('auto member requirements/b.txt');
+const c = fs.readFileSync('auto member requirements/c.txt');
+const d = fs.readFileSync('auto member requirements/d.txt');
+
+// emojis
+// const doddleoddleemot = client.emojis.get("406267153843486720");
+
+con.connect((err) => {
+  if (err) throw err;
+  console.log('Connected to mySQL Server.');
+  console.log('DATABASE = doddlebot');
+});
 
 client.login(config.token);
 
@@ -156,7 +88,6 @@ client.on('guildMemberAdd', (member) => {
   console.log(`${member.user.tag} (${member.id}) has joined ${member.guild.name}`);
   infoLogger.info(`ARCHIVE: ${member.user.tag} (${member.id}) has joined ${member.guild.name}`);
   member.guild.channels.find('name', 'introduce_yourself').send(`${member}`);
-  member.addRole(nonmemberid());
 });
 
 client.on('guildMemberAdd', (embedwelcome) => {
@@ -171,42 +102,125 @@ client.on('guildMemberAdd', (embedwelcome) => {
 client.on('guildMemberRemove', (remember) => {
   console.log(`${remember.user.tag} (${remember.id}) Has left ${remember.guild.name}`);
   infoLogger.info(`ARCHIVE: ${remember.user.tag} (${remember.id}) Has left ${remember.guild.name}`);
-  remember.guild.channels.find('name', 'general').send(`${remember} Has left ${remember.guild.name}, hopefully we see them again soon!`);
+  remember.guild.channels.find('name', 'general').send(`${remember.user.tag.slice(0, -5)} Has left ${remember.guild.name}, hopefully we see them again soon!`);
 });
-
 
 client.on('message', (message) => {
   if (message.author.bot) return;
 
   const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
   const command = args.shift().toLowerCase();
+  // start of points and levels
+  // using perpared statements to avoid SQL injection
+  const pointsRandom = (Math.floor(Math.random() * 18) + 5);
 
-  con.query(`SELECT * FROM userpoints WHERE name = "${message.author.id}"`, (err1, result) => {
-    if (err1) throw err1;
-    if (result.length > 0) {
-      const sql = `UPDATE userpoints SET points = points + 10 WHERE name = "${message.author.id}"`;
-      con.query(sql, (err2, result1) => {
-        if (err2) throw err2;
-        console.log('1 record updated');
-      });
+  let fromUserPointsSQL = 'SELECT * FROM userpoints WHERE name = ?';
+  const name = [message.author.id];
+  const username = [message.author.username];
+  fromUserPointsSQL = mysql.format(fromUserPointsSQL, name);
+
+  let usernameFromUserPointsSQL = 'SELECT username FROM userpoints WHERE name = ?';
+  usernameFromUserPointsSQL = mysql.format(usernameFromUserPointsSQL, name);
+
+  let pointsFromUserPointsSQL = 'SELECT points FROM userpoints WHERE name = ?';
+  pointsFromUserPointsSQL = mysql.format(pointsFromUserPointsSQL, name);
+
+  let setTotalPointsSQL = `UPDATE userpoints SET totalpoints = totalpoints + ${pointsRandom} WHERE name = ?`;
+  setTotalPointsSQL = mysql.format(setTotalPointsSQL, name);
+
+  let totalPointsFromUserPointsSQL = 'SELECT totalpoints FROM userpoints WHERE name = ?';
+  totalPointsFromUserPointsSQL = mysql.format(totalPointsFromUserPointsSQL, name);
+
+  let setPointsSQL = `UPDATE userpoints SET points = points + ${pointsRandom} WHERE name = ?`;
+  setPointsSQL = mysql.format(setPointsSQL, name);
+
+  let levelFromUserPointsSQL = 'SELECT level FROM userpoints WHERE name = ?';
+  levelFromUserPointsSQL = mysql.format(levelFromUserPointsSQL, name);
+
+  let userPointsSetLevel = 'UPDATE userpoints SET level = level + 1 WHERE name = ?';
+  userPointsSetLevel = mysql.format(userPointsSetLevel, name);
+
+  let userPointsSetUsernameSQL = `UPDATE userpoints SET username = ? WHERE name = ${name}`;
+  userPointsSetUsernameSQL = mysql.format(userPointsSetUsernameSQL, username);
+
+  con.query(fromUserPointsSQL, (err0, resultName) => {
+    if (err0) throw err0;
+    if (message.member.roles.has(role.managersjoshesid)) {
+      // ESlint
+    } else if (resultName.length > 0) {
+      if ((message.content.length) > 4) {
+        con.query(setTotalPointsSQL);
+        con.query(setPointsSQL, (err1) => {
+          if (err1) throw err1;
+          con.query(pointsFromUserPointsSQL, (err2, resultPoints) => {
+            if (err2) throw err2;
+            const resultJsonObj = JSON.stringify(resultPoints);
+            const points = resultJsonObj.slice(11, -2);
+            con.query(levelFromUserPointsSQL, (err3, levelResult) => {
+              if (err3) throw err3;
+              const resultJsonObjLevel = JSON.stringify(levelResult);
+              const findLevel = resultJsonObjLevel.indexOf('level');
+              const levelReturn = resultJsonObjLevel.slice(findLevel, -2);
+              const level = levelReturn.slice(7);
+              con.query(usernameFromUserPointsSQL, (err77, usernameResult) => {
+                if (err77) throw err77;
+                const usernameJsonOBJ = JSON.stringify(usernameResult);
+                const usernameslice = usernameJsonOBJ.slice(14, 3);
+                if (username !== usernameslice) {
+                  con.query(userPointsSetUsernameSQL, (err88) => {
+                    if (err88) throw err88;
+                  });
+                }
+              });
+              console.log(`${message.author.tag} got ${pointsRandom} points! Level: ${level} Points: ${points}`);
+              if (points > 100 * level) {
+                con.query(`UPDATE userpoints SET points = 0 WHERE name = ${message.author.id}`);
+                con.query(totalPointsFromUserPointsSQL, (err4, totalPointsResult) => {
+                  const resultJsonObjTotalPoints = JSON.stringify(totalPointsResult);
+                  const totalPointsSlice = resultJsonObjTotalPoints.slice(16, -4);
+                  const totalpoints = totalPointsSlice.concat('00');
+                  con.query(`UPDATE userpoints SET totalpoints = ${totalpoints} WHERE name = ${message.author.id}`);
+                });
+                con.query(userPointsSetLevel, (err5) => {
+                  if (err5) throw err5;
+                  console.log(`${message.author} Levelled up`);
+                  if (message.channel.name !== 'serious') {
+                    message.channel.send(`You are now leaving level ${level}, ${message.author}`);
+                  }
+                });
+              }
+            });
+          });
+        });
+      }
     } else {
       const newUser = [
-        [`${message.author.id}`, `${message.author.tag}`, 0],
+        [`${message.author.id}`, `${message.author.tag}`, 1, 0],
       ];
-      con.query('INSERT INTO userpoints (`name`,`username`, `points`) VALUES ?', [newUser], (err3, rows, fields) => {
+      con.query('INSERT INTO userpoints (`name`,`username`, `level`, `points`) VALUES ?', [newUser], (err3) => {
         if (err3) throw err3;
         console.log('1 record inserted');
       });
     }
   });
 
-  if (message.member.roles.has(memberid())) {
+  if (message.channel.name === 'doddlebot-chat') {
+    clbot.write(message.content, (response) => {
+      message.channel.startTyping();
+      setTimeout(() => {
+        message.channel.send(response.output).catch(console.error);
+        message.channel.stopTyping();
+      }, Math.random() * (1 - 3) + 1 * 1000);
+    });
+  }
+
+  if (message.member.roles.has(role.memberid)) {
     // ESlint
   } else if (message.content.toLowerCase().match(a)) {
     if (message.content.toLowerCase().match(b)) {
       if (message.content.toLowerCase().match(c)) {
         if (message.content.toLowerCase().match(d)) {
-          message.member.addRole(memberid());
+          message.member.addRole(role.memberid);
           message.channel.send('Your intro was so good I was able to tell!, I have added you as a member. Welcome to doddlecord!');
           console.log(`${message.author.tag} has been added by doddlebot`);
           infoLogger.info(`ARCHIVE: ${message.author.tag} had been added by doddlebot`);
@@ -218,445 +232,162 @@ client.on('message', (message) => {
   if (message.content.indexOf(config.prefix) !== 0) return;
 
   // colour stuff
-
-  if (command === 'lime') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(limeid())) {
-        message.channel.send('You have lime...you lemon');
-        console.log(`${message.author.tag} had the lime role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the lime role already`);
+  if (command === 'colour') {
+    const colour = args[0]; // Remember arrays are 0-based!.
+    if (colour === 'lime') {
+      if (message.member.roles.has(role.limeid)) {
+        message.reply('you have lime...you lemon');
       } else {
-        message.member.addRole(limeid());
-        message.member.removeRole(roseid());
-        message.member.removeRole(blueskyid());
-        message.member.removeRole(lightvioletid());
-        message.channel.send(`Lime is now your colour ${message.author}`);
-        console.log(`${message.author.tag} now has the lime role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the lime role now`);
+        message.member.addRole(role.limeid);
+        message.member.removeRole(role.roseid);
+        message.member.removeRole(role.blueskyid);
+        message.member.removeRole(role.lightvioletid);
+        message.member.removeRole(role.aquaid);
+        message.reply('you now have the lime colour!');
       }
-    } else {
-      message.channel.send(`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`);
-      console.log(`${message.author.tag} was trying to add the lime role, but is not a member`);
-      infoLogger.info(`ARCHIVE ${message.author.tag} was trying to add the lime role, but is not a member`);
+    } else if (colour === 'rose') {
+      if (message.member.roles.has(role.roseid)) {
+        message.reply('roses are red, violets are blue, **you already have the rose red role**');
+      } else {
+        message.member.addRole(role.roseid);
+        message.member.removeRole(role.limeid);
+        message.member.removeRole(role.blueskyid);
+        message.member.removeRole(role.lightvioletid);
+        message.member.removeRole(role.aquaid);
+        message.reply('you now have the rose colour!');
+      }
+    } else if (colour === 'bluesky') {
+      if (message.member.roles.has(role.blueskyid)) {
+        message.reply('Roses are red violets are blue **you already have role colour blue**');
+      } else {
+        message.member.addRole(role.blueskyid);
+        message.member.removeRole(role.roseid);
+        message.member.removeRole(role.limeid);
+        message.member.removeRole(role.lightvioletid);
+        message.member.removeRole(role.aquaid);
+        message.reply('you now have the blue sky colour!');
+      }
+    } else if (colour === 'lightviolet') {
+      if (message.member.roles.has(role.lightvioletid)) {
+        message.reply('You already have light violet');
+      } else {
+        message.member.addRole(role.lightvioletid);
+        message.member.removeRole(role.limeid);
+        message.member.removeRole(role.blueskyid);
+        message.member.removeRole(role.roseid);
+        message.member.removeRole(role.aquaid);
+        message.reply('you now have the light violet colour!');
+      }
+    } else if (colour === 'aqua') {
+      if (message.member.roles.has(role.aquaid)) {
+        message.reply('roses are red, violets are blue, **you already have aqua blue**');
+      } else {
+        message.member.addRole(role.aquaid);
+        message.member.removeRole(role.roseid);
+        message.member.removeRole(role.limeid);
+        message.member.removeRole(role.blueskyid);
+        message.member.removeRole(role.lightvioletid);
+        message.reply('you now have the aqua colour!');
+      }
+    } else if (colour === 'remove') {
+      if (message.member.roles.has(role.limeid)) {
+        message.member.removeRole(role.limeid);
+        message.reply('lime has been removed');
+      } else if (message.member.roles.has(role.blueskyid)) {
+        message.member.removeRole(role.blueskyid);
+        message.reply('blue sky has been removed');
+      } else if (message.member.roles.has(role.roseid)) {
+        message.member.removeRole(role.roseid);
+        message.reply('rose has been removed');
+      } else if (message.member.roles.has(role.lightvioletid)) {
+        message.member.removeRole(role.lightvioletid);
+        message.reply('light violet has been removed');
+      } else if (message.member.roles.has(role.aquaid)) {
+        message.member.removeRole(role.aquaid);
+        message.reply('aqua has been removed');
+      } else message.reply("you don't have a role colour");
     }
   }
-
-  if (command === 'rose') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(roseid())) {
-        message.channel.send('Rose are red, violets are blue, **you already have the rose red role**');
-        console.log(`${message.author.tag} had the rose role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the rose role already`);
-      } else {
-        message.member.addRole(roseid());
-        message.member.removeRole(limeid());
-        message.member.removeRole(blueskyid());
-        message.member.removeRole(lightvioletid());
-        message.channel.send(`Rose is now your colour ${message.author}`);
-        console.log(`${message.author.tag} now has the rose role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the rose role now`);
-      }
-    } else {
-      message.channel.send(`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`);
-      console.log(`${message.author.tag} was trying to add the rose role, but Is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add the rose role, but Is not a member`);
-    }
-  }
-
-  if (command === 'bluesky') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(blueskyid())) {
-        message.channel.send('Roses are red violets are blue **you already have role colour blue**'); // Thanks Scoop
-        console.log(`${message.author.tag} had the blue sky role`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the blue sky role`);
-      } else {
-        message.member.addRole(blueskyid());
-        message.member.removeRole(roseid());
-        message.member.removeRole(limeid());
-        message.member.removeRole(lightvioletid());
-        message.channel.send(`Blue sky is now your colour ${message.author}`);
-        console.log(`${message.author.tag} now has the blue sky role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the blue sky role now`);
-      }
-    } else {
-      message.channel.send(`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`);
-      console.log(`${message.author.tag} was trying to add the blue sky role, but is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add the blue sky role, but is not a member`);
-    }
-  }
-
-  if (command === 'lightviolet') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(lightvioletid())) {
-        message.channel.send('You have light violet');
-        console.log(`${message.author.tag} had the light violet role`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the light violet role`);
-      } else {
-        message.member.addRole(lightvioletid());
-        message.member.removeRole(roseid());
-        message.member.removeRole(blueskyid());
-        message.member.removeRole(limeid());
-        message.channel.send(`Light violet is now your colour ${message.author}`);
-        console.log(`${message.author.tag} has the light violet now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the light violet now`);
-      }
-    } else {
-      message.channel.send(`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`);
-      console.log(`${message.author.tag} was trying to add the light violet role, but is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add the light violet role, but is not a member`);
-    }
-  }
-
-  if (command === 'removecolour') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(lightvioletid())) {
-        message.member.removeRole(lightvioletid());
-        message.channel.send(`light violet has been removed ${message.author}`);
-        console.log(`${message.author.tag} Has removed light violet`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} Has removed light violet`);
-      } else if (message.member.roles.has(blueskyid())) {
-        message.member.removeRole(blueskyid());
-        message.channel.send(`Blue Sky has been removed ${message.author}`);
-        console.log(`${message.author.tag} Has removed sky blue`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} Has removed Blue sky`);
-      } else if (message.member.roles.has(roseid())) {
-        message.member.removeRole(roseid());
-        message.channel.send(`rose has been removed ${message.author}`);
-        console.log(`${message.author.tag} Has removed rose`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} Has removed Rose`);
-      } else if (message.member.roles.has(limeid())) {
-        message.member.removeRole(limeid());
-        message.channel.send(`lime has been removed ${message.author}`);
-        console.log(`${message.author.tag} Have removed lime`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} Has removed Lime`);
-      } else {
-        message.channel.send(`You dont have a colour asignd ${message.author}`);
-      }
-    } else {
-      message.channel.send(`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`);
-    }
-  }
-
   // End of colour stuff
 
   // personality stuff
+  if (command === 'pers') {
+    if (message.member.roles.has(role.memberid)) {
+      const per0 = args[0]; // Remember arrays are 0-based!.
+      const per1 = args[1];
+      const per2 = args[2];
+      const per3 = args[3];
+      const per4 = args[4];
+      const per5 = args[5];
+      const per6 = args[6];
+      const per7 = args[7];
+      const peradded1 = [per1, per2, per3, per4, per5, per6, per7];
+      const peradded = [`${per0}, ${per1}, ${per2}, ${per3}, ${per4}, ${per5}, ${per6}, ${per7}`];
 
-  if (command === 'gay') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(gayid())) {
-        message.channel.send(`You already have the gay role ${message.author}`);
-        console.log(`${message.author.tag} had the gay role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the gay role already`);
-      } else {
-        message.member.addRole(gayid());
-        message.channel.send(`Gay role has been added ${message.author}`);
-        console.log(`${message.author.tag} has the gay role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the gay role now`);
-      }
-    } else {
-      message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-    }
-  }
+      const peraddedjson = JSON.stringify(peradded);
+      const peraddedNoUndef = peraddedjson.replace(/undefined/g, '');
+      const removeenter = peraddedNoUndef.replace(/`/g, '');
+      const quote = removeenter.replace(/,/g, '');
+      const added = quote.slice(2, -2);
 
-  if (command === 'straight') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(straightid())) {
-        message.channel.send(`You already have the straight role ${message.author}`);
-        console.log(`${message.author.tag} had the straight role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-      } else {
-        message.member.addRole(straightid());
-        message.channel.send(`Straight has been added ${message.author}`);
-        console.log(`${message.author.tag} has the straight role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the straight role now`);
+      console.log(added);
+      if (added.match('Gay')) {
+        message.member.addRole(role.gayid);
       }
-    } else {
-      message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
-      infoLogger.info(`ACRHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-    }
-  }
-
-  if (command === 'bi') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(bisexualid())) {
-        message.channel.send(`you already have the bisexual role ${message.author}`);
-        console.log(`${message.author.tag} had the bisexual role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the bisexual role already`);
-      } else {
-        message.member.addRole(bisexualid());
-        message.channel.send(`Bisexual has been added ${message.author}`);
-        console.log(`${message.author.tag} has the bisexual role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the bisexual role now`);
+      if (added.match('Straight')) {
+        message.member.addRole(role.straightid);
       }
-    } else {
-      message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-    }
-  }
-
-  if (command === 'asex') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(asexualid())) {
-        message.channel.send(`You already have the asexual role ${message.author}`);
-        console.log(`${message.author.tag} had the asexual role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the asexual role already`);
-      } else {
-        message.member.addRole(asexualid());
-        message.channel.send(`Asexual has been added ${message.author}`);
-        console.log(`${message.author.tag} has the asexual role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the asexual role now`);
+      if (added.match('Bisexual')) {
+        message.member.addRole(role.bisexualid);
       }
-    } else {
-      message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-    }
-  }
-
-  if (command === 'pan') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(pansexualid())) {
-        message.channel.send(`You already have the pansexual role ${message.author}`);
-        console.log(`${message.author.tag} had the pansexual role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the pansexual role already`);
-      } else {
-        message.member.addRole(pansexualid());
-        message.channel.send(`Pansexual role has been added ${message.author}`);
-        console.log(`${message.author.tag} has the pansexual role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the pansexual role now`);
+      if (added.match('Asexual')) {
+        message.member.addRole(role.asexualid);
       }
-    } else {
-      message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-    }
-  }
-
-  if (command === 'female') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(femaleid())) {
-        message.channel.send(`You already have the female role ${message.author}`);
-        console.log(`${message.author.tag} had the female role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the female role already`);
-      } else {
-        message.member.addRole(femaleid());
-        message.channel.send(`Female role has been added ${message.author}`);
-        console.log(`${message.author.tag} has the female role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the female role now`);
+      if (added.match('Pansexual')) {
+        message.member.addRole(role.pansexualid);
       }
-    } else {
-      message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-    }
-  }
-
-  if (command === 'male') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(maleid())) {
-        message.channel.send(`You already have the male role ${message.author}`);
-        console.log(`${message.author.tag} had the male role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the male role already`);
-      } else {
-        message.member.addRole(maleid());
-        message.channel.send(`Male role has been added ${message.author}`);
-        console.log(`${message.author.tag} has the male role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the male role now`);
+      if (added.match('Female')) {
+        message.member.addRole(role.femaleid);
       }
-    } else {
-      message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-    }
-  }
-
-  if (command === 'nonbinary') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(nonbinaryid())) {
-        message.channel.send(`You already have the non binary role ${message.author}`);
-        console.log(`${message.author.tag} had the non binary role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the non binary role already`);
-      } else {
-        message.member.addRole(nonbinaryid());
-        message.channel.send(`Non binary role has been added ${message.author}`);
-        console.log(`${message.author.tag} has the non binary role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the non binary role now`);
+      if (added.match('Male')) {
+        message.member.addRole(role.maleid);
       }
-    } else {
-      message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-    }
-  }
-
-  if (command === 'fluid') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(genderfluidid())) {
-        message.channel.send(`You already have the gender fluid role ${message.author}`);
-        console.log(`${message.author.tag} had the gender fluid role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the gender fluid role already`);
-      } else {
-        message.member.addRole(genderfluidid());
-        message.channel.send(`Gender fluid has been added ${message.author}`);
-        console.log(`${message.author.tag} has the gender fluid role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the gender fluid role now`);
+      if (added.match('Nonbinary')) {
+        message.member.addRole(role.nonbinaryid);
       }
-    } else {
-      message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-    }
-  }
-
-  if (command === 'trans') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(transid())) {
-        message.channel.send(`You already have the trans role ${message.author}`);
-        console.log(`${message.author.tag} had the trans role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the trans role already`);
-      } else {
-        message.member.addRole(transid());
-        message.channel.send(`Trans has been added ${message.author}`);
-        console.log(`${message.author.tag} has the trans role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the trans role now`);
+      if (added.match('Fluid')) {
+        message.member.addRole(role.genderfluidid);
       }
-    } else {
-      message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-    }
-  }
-
-  if (command === 'agender') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(agenderid())) {
-        message.channel.send(`You already have the agender role ${message.author}`);
-        console.log(`${message.author.tag} had the agender role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the agender role already`);
-      } else {
-        message.member.addRole(agenderid());
-        message.channel.send(`agender has been added ${message.author}`);
-        console.log(`${message.author.tag} has the agender role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the agender role now`);
+      if (added.match('Agender')) {
+        message.member.addRole(role.agenderid);
       }
-    } else {
-      message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-    }
-  }
-
-  if (command === 'hehim') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(hehimid())) {
-        message.channel.send(`You already have the He/Him role ${message.author}`);
-        console.log(`${message.author.tag} had the He/Him role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the He/Him role already`);
-      } else {
-        message.member.addRole(hehimid());
-        message.channel.send(`He/Him has been added ${message.author}`);
-        console.log(`${message.author.tag} has the He/Him role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the He/Him role now`);
+      if (added.match('Transsexual')) {
+        message.member.addRole(role.transid);
       }
-    } else {
-      message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-    }
-  }
-
-  if (command === 'sheher') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(sheherid())) {
-        message.channel.send(`You already have the She/Her role ${message.author}`);
-        console.log(`${message.author.tag} had the She/Her role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the She/Her role already`);
-      } else {
-        message.member.addRole(sheherid());
-        message.channel.send(`She/Her role has been added ${message.author}`);
-        console.log(`${message.author.tag} has the She/Her role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the She/Her role now`);
+      if (added.match('Hehim')) {
+        message.member.addRole(role.hehimid);
       }
-    } else {
-      message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-    }
-  }
-
-  if (command === 'theythem') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(theythemid())) {
-        message.channel.send(`You already have the They/Them role ${message.author}`);
-        console.log(`${message.author.tag} had the They/Them role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-      } else {
-        message.member.addRole(theythemid());
-        message.channel.send(`They/Them has been added ${message.author}`);
-        console.log(`${message.author.tag} has the They/Them role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the They/Them role now`);
+      if (added.match('Sheher')) {
+        message.member.addRole(role.sheherid);
       }
-    } else {
-      message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-    }
-  }
-
-  if (command === 'musician') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(musicianid())) {
-        message.channel.send(`You already have the musician role ${message.author}`);
-        console.log(`${message.author.tag} had the ${message.content.slice(config.prefix.length)} role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the ${message.content.slice(config.prefix.length)} role already`);
-      } else {
-        message.member.addRole(musicianid());
-        message.channel.send(`Musician has been added ${message.author}`);
-        console.log(`${message.author.tag} has the musician role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the musician role now`);
+      if (added.match('Theythem')) {
+        message.member.addRole(role.theythemid);
       }
-    } else {
-      message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-    }
-  }
-
-  if (command === 'artist') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(artistid())) {
-        message.channel.send(`You already have the artist role ${message.author}`);
-        console.log(`${message.author.tag} had the artist role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the artist role already`);
-      } else {
-        message.member.addRole(artistid());
-        message.channel.send(`artist has been added ${message.author}`);
-        console.log(`${message.author.tag} has the artist role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the artist role now`);
+      if (added.match('Musician')) {
+        message.member.addRole(role.musicianid);
       }
-    } else {
-      message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-      console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
-      infoLogger.info(`ARCHIVE: ${message.author.tag} was trying to add a personality role, but is not a member`);
-    }
-  }
-
-  if (command === 'memetrash') {
-    if (message.member.roles.has(memberid())) {
-      if (message.member.roles.has(memetrashid())) {
-        message.channel.send(`You already have the meme trash role ${message.author}`);
-        console.log(`${message.author.tag} had the meme trash role already`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} had the meme trash role already`);
-      } else {
-        message.member.addRole(memetrashid());
-        message.channel.send(`Meme Trash role has been added ${message.author}`);
-        console.log(`${message.author.tag} has the meme trash role now`);
-        infoLogger.info(`ARCHIVE: ${message.author.tag} has the meme trash role now`);
+      if (added.match('Artist')) {
+        message.member.addRole(role.artistid);
       }
+      if (added.match('Memetrash')) {
+        message.member.addRole(role.memetrashid);
+      }
+      console.log(`${message.author.tag} has added ${added}`);
+      infoLogger.info(`ARCHIVE: ${message.author.tag} has added ${added}`);
+      const embed = new Discord.MessageEmbed()
+        .setColor(0xFEF65B)
+        .addField('**personality roles added**', (peradded1));
+      message.channel.send({ embed });
     } else {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
       console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
@@ -674,16 +405,16 @@ client.on('message', (message) => {
       .addField('Members', `${message.guild.memberCount - message.guild.members.filter(member => member.user.bot).size} Members`)
       .addField('Bots', `${message.guild.members.filter(member => member.user.bot).size} Bots`)
       .addField('Channels', `${message.guild.channels.filter(chan => chan.type === 'voice').size} voice / ${message.guild.channels.filter(chan => chan.type === 'text').size} text`)
-      .addField('Mods', '@96drum @doctorzelda75 @emyflorence @philosophicalMoose')
+      .addField('Mods', '@BrickOfWar @doctorzelda75 @emyflorence @philosophicalMoose @imawetnoodle')
       .addField('Managers', '@ShaunaSmells @TechLevelZero @Metakarp');
     message.channel.send({ embed });
   }
 
-  if (command === 'colourroles') {
+  if (command === 'colourhelp') {
     const embed = new Discord.MessageEmbed()
       .setColor(0xFEF65B)
       .setTitle('**Colour Role Help**')
-      .setDescription('This is commands to add colour to your name in doddlecord! If you want a list of all commands look at #rules-n-stuff or use d!allhelp')
+      .setDescription('This is the command to add colour to your name in doddlecord!')
       .setThumbnail('https://pbs.twimg.com/media/DTDcEe-W4AUqV8D.jpg:large')
       .addField('**Colour Commands**', (colourcommandList));
     message.channel.send({ embed });
@@ -709,11 +440,12 @@ client.on('message', (message) => {
     message.channel.send({ embed });
   }
 
-  if (command === 'personalroles') {
+  if (command === 'persroles') {
     const embed = new Discord.MessageEmbed()
       .setColor(0xFEF65B)
       .setTitle('**Personal Role Help**')
-      .setDescription('Personal roles are added to give a little info on who you are to other members of doddlecord. They are completely optional roles though')
+      .setDescription('Personal roles are added to give a little info on who you are to other members of doddlecord. They are completely optional roles though. Make __shore__ you spell it correctly and have a **capital letter** for each role or it will not add them!')
+      .addField('Use', colouruse)
       .setThumbnail('https://pbs.twimg.com/media/DTDcEe-W4AUqV8D.jpg:large')
       .addField('**Commands**', (perscommandList));
     message.channel.send({ embed });
@@ -729,6 +461,16 @@ client.on('message', (message) => {
       .addField('**Other Commands**', (othercommandList))
       .addField('**Colour Commands**', (colourcommandList))
       .addField('**Personal Commands**', (perscommandList));
+    message.channel.send({ embed });
+  }
+
+  if (command === 'extras') {
+    const embed = new Discord.MessageEmbed()
+      .setColor(0xFEF65B)
+      .setTitle('**Extra Help**')
+      .setDescription('Just some extra commands that doddlebot can do!')
+      .setThumbnail('https://pbs.twimg.com/media/DTDcEe-W4AUqV8D.jpg:large')
+      .addField('**Extra Commands**', (othercommandList));
     message.channel.send({ embed });
   }
 
@@ -760,11 +502,11 @@ client.on('message', (message) => {
   }
 
   if (command === 'log') {
-    if (message.member.roles.has(managersjoshesid())) {
+    if (message.member.roles.has(role.managersjoshesid())) {
       message.guild.channels.find('name', 'secrets-for-the-mods').send('Info Log File', {
         files: ['./logs/info.log'],
       });
-    } else if (message.member.roles.has(modsid())) {
+    } else if (message.member.roles.has(role.modsid())) {
       message.guild.channels.find('name', 'secrets-for-the-mods').send('Info Log File', {
         files: ['./logs/info.log'],
       });
@@ -772,15 +514,91 @@ client.on('message', (message) => {
   }
 
   if (command === 'errors') {
-    if (message.member.roles.has(managersjoshesid())) {
+    if (message.member.roles.has(role.managersjoshesid())) {
       message.guild.channels.find('name', 'secrets-for-the-mods').send('Error Log File', {
         files: ['./logs/errors.log'],
       });
-    } else if (message.member.roles.has(modsid())) {
+    } else if (message.member.roles.has(role.modsid())) {
       message.guild.channels.find('name', 'secrets-for-the-mods').send('Error Log File', {
         files: ['./logs/errors.log'],
       });
     } else return;
+  }
+
+  if (message.channel.name === 'secrets-for-the-mods') {
+    if (command === 'thisweekstop5') {
+      con.query('SELECT username, level, points FROM userpoints ORDER BY totalpoints DESC LIMIT 5', (err, result) => {
+        const resultJsonObj = JSON.stringify(result);
+        const remove = resultJsonObj.replace(/{"username"/g, '');
+        const removeenter = remove.replace(/},:/g, '£&£\r');
+        const quote = removeenter.replace(/"/g, '');
+        const addspaceLevel = quote.replace(/level:/g, ' Level: ');
+        const addspacePoints = addspaceLevel.replace(/points:/g, ' Points: ');
+        const line = addspacePoints.replace(/, /g, '\r');
+        const add = line.replace(/£&£/g, '\r');
+        const embed = new Discord.MessageEmbed()
+          .setColor(0xFEF65B)
+          .setTitle("**doddlecord's Top 5 This Week's**")
+          .setDescription(add.slice(2, -2));
+        message.channel.send({ embed });
+        message.channel.send('Is this ok to send and use? (d!send)');
+      });
+    }
+  }
+
+  if (message.channel.name === 'secrets-for-the-mods') {
+    if (command === 'send') {
+      con.query('SELECT username, level, points FROM userpoints ORDER BY totalpoints DESC LIMIT 5', (err, result) => {
+        const resultJsonObj = JSON.stringify(result);
+        const remove = resultJsonObj.replace(/{"username"/g, '');
+        const removeenter = remove.replace(/},:/g, '£&£\r');
+        const quote = removeenter.replace(/"/g, '');
+        const addspaceLevel = quote.replace(/level:/g, ' Level: ');
+        const addspacePoints = addspaceLevel.replace(/points:/g, ' Points: ');
+        const line = addspacePoints.replace(/, /g, '\r');
+        const add = line.replace(/£&£/g, '\r');
+        const embed = new Discord.MessageEmbed()
+          .setColor(0xFEF65B)
+          .setTitle("**doddlecord's Top 5 This Week's**")
+          .setDescription(add.slice(2, -2));
+        message.guild.channels.find('name', 'important-announcements').send({ embed });
+      });
+    }
+  }
+
+  if (message.channel.name === 'secrets-for-the-mods') {
+    if (command === 'sendupdate') {
+      message.guild.channels.find('name', 'important-announcements').send('@everyone');
+      const embed = new Discord.MessageEmbed()
+        .setColor(0xFEF65B)
+        .setTitle('doddlebot V1.2 OVERHAUL Update')
+        .addField('#doddlebot-chat', 'The Final bits of code were added for #doddlebot-chat and now does not slow down the bot.')
+        .addField('Menus', 'Help menus got an overhaul now with a new way to add colours and personal roles! Use d!help to have a look!')
+        .addField('d!flip', "a fun way to get someone's attention. (pssst try d!flip @doddlebot)")
+        .addField('Points', 'A full points system has been implemented! d!rank and d!top10 are the commands.')
+        .addField('Top5', 'The top 5 active members within the week get the  brand new role @top5thisweek (Every Sunday)')
+        .addField('Colour', 'And last but not least a new role colour @Aqua has been added!');
+      message.guild.channels.find('name', 'important-announcements').send({ embed });
+    }
+  }
+
+  if (command === 'rank') {
+    con.query(`SELECT points FROM userpoints WHERE name = "${message.author.id}"`, (err, result) => {
+      const resultJsonObj = JSON.stringify(result);
+      const pointsReturn = resultJsonObj.slice(11, -2);
+      con.query(levelFromUserPointsSQL, (err67, levelResult) => {
+        const resultJsonObjLevel = JSON.stringify(levelResult);
+        const level = resultJsonObjLevel.slice(10, -2);
+        const level100 = (level * 100);
+        const embed = new Discord.MessageEmbed()
+          .setColor(0xFEF65B)
+          .setTitle(`**Your Rank ${message.author.username}**`)
+          .addField('**Level**', (level))
+          .addField('**Points**', (pointsReturn))
+          .addField('Next Level In', `${level100 - pointsReturn} Points`);
+        message.channel.send({ embed });
+      });
+    });
   }
 
   function run() {
@@ -792,22 +610,31 @@ client.on('message', (message) => {
     message.channel.send({ embed });
   }
 
-  if (command === 'points') {
-    con.query(`SELECT * FROM userpoints WHERE name = "${message.author.id}"`, (err, result) => {
-      const resultJsonObj = JSON.stringify(result);
-      const findPoints = resultJsonObj.indexOf('points');
-      const pointsReturn = resultJsonObj.slice(findPoints, -3);
-      message.channel.send(`You have ${pointsReturn.slice(9)} Points ${message.author}`);
-    });
+  if (command === 'welcomeembedtest') {
+    if (message.member.roles.has(role.managersjoshesid())) {
+      run();
+    }
+    if (message.member.roles.has(role.modsid())) {
+      run();
+    }
   }
 
-  if (command === 'welcomeembedtest') {
-    if (message.member.roles.has(managersjoshesid())) {
-      run();
-    }
-    if (message.member.roles.has(modsid())) {
-      run();
-    }
+  if (command === 'top10') {
+    con.query('SELECT username, level, points FROM userpoints ORDER BY totalpoints DESC LIMIT 10', (err, result) => {
+      const resultJsonObj = JSON.stringify(result);
+      const remove = resultJsonObj.replace(/{"username"/g, '');
+      const removeenter = remove.replace(/},:/g, '£&£\r');
+      const quote = removeenter.replace(/"/g, '');
+      const addspaceLevel = quote.replace(/level:/g, ' Level: ');
+      const addspacePoints = addspaceLevel.replace(/points:/g, ' Points: ');
+      const line = addspacePoints.replace(/, /g, '\r');
+      const add = line.replace(/£&£/g, '\r');
+      const embed = new Discord.MessageEmbed()
+        .setColor(0xFEF65B)
+        .setTitle("**doddlecord's Top 10**")
+        .setDescription(add.slice(2, -2));
+      message.channel.send({ embed });
+    });
   }
 
   if (command === 'flip') {
@@ -815,9 +642,9 @@ client.on('message', (message) => {
       if (message.content.toLowerCase().match('<')) {
         if (message.content.toLowerCase().match('394424134337167360')) {
           message.channel.send("Oh you think thats funny do you? How's about this!");
-          message.channel.send(upsidedown(`${message.author.tag.substr(0, message.author.tag.length - 5)} ︵╯）°□°╯)`));
+          message.channel.send(upsidedown(`${message.author.tag.slice(0, -5)} ︵╯）°□°╯)`));
         } else {
-          message.channel.send(upsidedown(`${message.cleanContent.substr(8, message.cleanContent.length - 0)} ︵╯）°□°╯)`));
+          message.channel.send(upsidedown(`${message.cleanContent.slice(8)} ︵╯）°□°╯)`));
         }
       } else {
         message.channel.send('How to use: `d!flip @user');
@@ -827,8 +654,11 @@ client.on('message', (message) => {
     }
   }
 
+  if (command === 'testing') {
+    // testing
+  }
+
   if (command === 'patreon') {
     message.channel.send('Support the bots @-----> <https://www.patreon.com/benhunter>');
   }
 });
-
