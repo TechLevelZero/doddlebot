@@ -1,6 +1,2 @@
 {
-    "jshint.options": {
-        "esversion": 6,
-        "indent": true,
-    }
 }

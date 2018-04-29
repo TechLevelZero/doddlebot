@@ -3,6 +3,8 @@ d!help  -   `You will never guess what this does!`
 
 d!serverinfo   -   `Shows basic info about doddlecord`
 
+d!serious    -    `gain access to the serious chat`
+
 d!ping   -   `shows the delay of doddlebot`
 
 d!flip    -    `Flips a users name. use: d!flip @user`
