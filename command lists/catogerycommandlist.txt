@@ -1,6 +1,0 @@
-
-d!colourhelp   -   `Shows colour role commands`
-
-d!persroles   -   `Shows personal role commands`
-
-d!extras    -    `Shows extra commands that doddlebot can do!`
