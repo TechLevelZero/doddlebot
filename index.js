@@ -2,6 +2,8 @@
 
 // doddlebot 1.2.7 authors: Ben Hunter
 
+'use strict';
+
 const { Client, MessageEmbed } = require('discord.js');
 
 const crypto = require('crypto');
@@ -250,6 +252,8 @@ client.on('guildMemberRemove', (remember) => {
 
 let perscommandList = [];
 
+let key = Object.keys(bot.newRoles)
+
 for (key in bot.newRoles) {
   perscommandList.push(key);
 }
@@ -259,7 +263,6 @@ client.on('message', (message) => {
 
   const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
   const command = args.shift().toLowerCase();
-  console.log(message.content)
   message.content = message.content.toLowerCase();
   if (message.content === 'd!kill') {
     if (message.member.roles.has(bot.role.managersjoshesid) || (message.author.id === '394424134337167360')) {
