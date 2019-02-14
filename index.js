@@ -305,7 +305,6 @@ client.on('message', (message) => {
       message.channel.send('Getting your data')
       const doc = new PDFDocument();
       function archiveData(callback) {
-
         //////////////////////
         /// YearArrayBlock ///
         /////////////////////
@@ -328,7 +327,7 @@ client.on('message', (message) => {
                 yearlyData.push(result[i]) // pushed to array
                 pointsData += result[i].pointsgained // adding the points
                 wordData += result[i].messagecount // adding the points
-                channelData.push(result[i].channel) // pushing channle data
+                channelData.push(result[i].channel) // pushing channel data
               }
             }
             yearData.push(yearlyData) // each year is then pushed into the data arrays, this also makes this function atoumectly expandble. nothing to do when the new year comes!
@@ -338,7 +337,7 @@ client.on('message', (message) => {
 
             setTimeout(() => {
               let channelCounts = {}
-              channel[y - 2018].forEach(function(x) { channelCounts[x] = (channelCounts[x] || 0)+1; }); // counting the channle freqancy
+              channel[y - 2018].forEach(function(x) { channelCounts[x] = (channelCounts[x] || 0)+1; }); // counting the channel freqency
               setTimeout(() => { channelCom.push(channelCounts) }, 500)
               if (yearData[y - 2018].length === 0) {
                 noDataCount++ // if no data is present for early years they are counted up
@@ -348,7 +347,6 @@ client.on('message', (message) => {
         }
         setTimeout(() => {
           callback(yearData, points, wordCount, channelCom, noDataCount)
-          console.log(yearData, points, wordCount, channelCom, channel, noDataCount)
         }, 3000)
       }
 
@@ -360,14 +358,8 @@ client.on('message', (message) => {
       });
       doc.font('./fonts/Roboto-Thin.ttf').fontSize(11);
       doc.text(`\nYour data ${message.author.tag}`, { align: 'center' });
-
-
-      console.log(client.guilds.get(337013993669656586).id);
-      console.log(client.guilds.get(337013993669656586).members.get(message.author.id).joinedAt);
-
-
-      //const joinDateArray = `${message.guild.members.get(message.author.id).joinedAt}`.trim().split(/ +/g);
-      // doc.text(`\nYou joined on ${joinDateArray[0]} ${joinDateArray[1]} ${joinDateArray[2]} ${joinDateArray[3]} at ${joinDateArray[4]}` || '\nYou joined on: No data', { align: 'center' });
+      const joinDateArray = `${message.client.guilds.get("337013993669656586").members.get(message.author.id).joinedAt}`.trim().split(/ +/g);
+      doc.text(`\nYou joined on ${joinDateArray[0]} ${joinDateArray[1]} ${joinDateArray[2]} ${joinDateArray[3]} at ${joinDateArray[4]}` || '\nYou joined on: No data', { align: 'center' });
       doc.text(bot.text.gdpr);
       archiveData((yearData, points, wordCount, channel, noDataCount) => {
         let mark = false
@@ -552,7 +544,6 @@ client.on('message', (message) => {
               const totalPointsSlice = resultJsonObjTotalPoints.slice(16, -4);
               const totalpoints = totalPointsSlice.concat('00');
               con.query(`UPDATE weeklypoints SET totalpoints = ${totalpoints} WHERE userid = ${message.author.id}`);
-
             });
             con.query(`UPDATE weeklypoints SET level = level + 1 WHERE userid = ${message.author.id}`);
           }
@@ -1246,7 +1237,6 @@ client.on('message', (message) => {
           const hours = Math.floor(seconds / (60 * 60));
           const minutes = Math.floor(seconds % (60 * 60) / 60);
           var seconds = Math.floor(seconds % 60);
-
           return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
         }
         const stats = fs.statSync("./index.js")
@@ -1268,194 +1258,94 @@ client.on('message', (message) => {
         });
       }
     }
-
-    // WIP just a little test
-    if (command === 'table') {
-      var table = new AsciiTable('Command Usage')
-        .setHeading('Command', 'Usage', 'Count');
-      con.query('SELECT command, count FROM commandusage', (err, result) => {
-        const embed = new MessageEmbed()
-          .setColor(0xFEF65B)
-          .setTitle('Command Usage');
-        for (let i = 0; i < 18; i++) {
-          f = ""
-          for (var g = 0; g < result[i].count / 100; g++) {
-            f += "#"
+    
+    if (command === 'concert') {
+      var locationLocationLocation = []
+      let numbers = ["\u0031\u20E3", "\u0032\u20E3", "\u0033\u20E3", "\u0034\u20E3", "\u0035\u20E3", "\u0036\u20E3", "\u0037\u20E3", "\u0038\u20E3", "\u0039\u20E3"];
+      con.query(`SELECT * FROM venues_2019`, (err, result) => {
+        for(x in result) {
+          if (result[x].name.toLowerCase().match(args[0])) {
+            var locAndId = []
+            locAndId.push(result[x].name, result[x].roleid)
+            locationLocationLocation.push(locAndId)
           }
-          // embed.addField(`${result[i].command}`, `used ${result[i].count} time(s)`);
-          table.addRow(`${result[i].command}`, f , `${result[i].count} `);
         }
-        embed.setDescription("```" + table.toString() + "```")
-        message.channel.send({ embed });
-        // message.channel.send("```" + table.toString() + "```")
-      });
-      /*
-      var a = 2000
-      var d = ""
-      for (var g = 0; g < a / 100; g++) {
-        d += "#"
-      }
-      var b = 34
-      var e = ""
-      for (var g = 0; g < b / 100; g++) {
-        e += "#"
-      }
-      var c = 83
-      var f = ""
-      for (var g = 0; g < c / 100; g++) {
-        f += "#"
-      }
-      setTimeout(() => {
-        // var table = new AsciiTable('A Title')
-        table
-          .setHeading('', 'Name', 'Age', '')
-          .addRow(1, 'Bob', 52, d)
-          .addRow(2, 'John', 34, e)
-          .addRow(3, 'Jim', 83, f)
-          */
-        message.channel.send("```" + table.toString() + "```")
-        
-    }
-
-    if (command === 'ttt') {
-      con.query(`SELECT count FROM commandusage WHERE id = 19`, (err, result) => {
-        var build = result[0].count
-        con.query(`UPDATE commandusage SET count = ${build} WHERE id = 20`);
-      });
-    }
-
-    if (command === 'wtf') {
-
-    }
-
-    if (command === 'test') {
-      message.channel.send('Getting your data')
-      const doc = new PDFDocument();
-      function archiveData(callback) {
-
-        //////////////////////
-        /// YearArrayBlock ///
-        /////////////////////
-        const getYear = new Date().getFullYear() //Get the currant year
-        var yearData = []   //
-        var points = []     // 
-        var wordCount = []  // this is passed tought as a callback
-        var channel = []    //
-        var channelCom = [] //
-        var noDataCount = 0 // 
-        for (let y = 2018; y < getYear +1; y++) { // checks the year (started colleding data in 2018)
-          con.query(`SELECT * FROM archive  WHERE userid = ${message.author.id}`, (err, result) => { // SQL shit
-            var yearlyData = []  // this is the data that had been put into yearly order
-            var pointsData = 0   //
-            var wordData = 0     //
-            var channelData = [] //
-            for (let i = 0; i < result.length; i++) { // checkes the length of the SQL result
-              const argsDate = `${result[i].date}`.trim().split(/ +/g); // Grabs the date of each result 
-              if (argsDate[3] === `${y}`) { // if the year of the message is with in the year of the first for loop then is added to the yearlyData arry
-                yearlyData.push(result[i]) // pushed to array
-                pointsData += result[i].pointsgained // adding the points
-                wordData += result[i].messagecount // adding the points
-                channelData.push(result[i].channel) // pushing channle data
-              }
+        if (locationLocationLocation.length === 1) {
+          message.channel.send(locationLocationLocation[0][0])
+          role('add', message, locationLocationLocation[0][1])
+          return
+        }
+        if (locationLocationLocation.length === 0) {
+          message.channel.send('There was no results for this location'); return
+        }
+        if (locationLocationLocation.length > 9) {
+          message.channel.send('There was too many results, try refine your search `E.G d!concert UK`'); return
+        } else {
+          var embedText = []
+          for (i in locationLocationLocation) {
+            embedText.push(numbers[i] + ' - ' + locationLocationLocation[i][0] + '\n')
+          }
+          const embed = new MessageEmbed()
+            .setColor(0xFEF65B)
+            .setTitle("React with the number of the venue you're attending")
+            .setDescription(embedText)
+          message.channel.send({ embed }).then((msg) => {
+            for (var i = 0; i < locationLocationLocation.length; i++) {
+              msg.react(numbers[i])
             }
-            yearData.push(yearlyData) // each year is then pushed into the data arrays, this also makes this function atoumectly expandble. nothing to do when the new year comes!
-            points.push(pointsData)   //
-            wordCount.push(wordData)  //
-            channel.push(channelData) //
-            
             setTimeout(() => {
-              let channelCounts = {}
-              channel[y - 2018].forEach(function(x) { channelCounts[x] = (channelCounts[x] || 0)+1; }); // counting the channle freqancy
-              setTimeout(() => { channelCom.push(channelCounts) }, 500)
-              if (yearData[y - 2018].length === 0) {
-                noDataCount++ // if no data is present for early years they are counted up
-              }
-            }, 1000)
+              var reactReact = setInterval(() => {
+                for (let z = 0; z < locationLocationLocation.length; z++) {
+                  if (msg.reactions.get(numbers[z]).users.get(message.author.id) != undefined) {
+                    message.channel.send('added ' + locationLocationLocation[z][0])
+                    console.log(locationLocationLocation[z][1])
+                    role('add', message, locationLocationLocation[z][1])
+                    clearInterval(reactReact)
+                  }
+                }
+              }, 250)
+              setTimeout(() => { clearInterval(reactReact) }, 15000)
+            }, locationLocationLocation.length * 1000)
           });
-        }
-        setTimeout(() => {
-          callback(yearData, points, wordCount, channelCom, noDataCount)
-          console.log(yearData, points, wordCount, channelCom, channel, noDataCount)
-        }, 3000)
-      }
-      
-      // start PDPkit
-      doc.pipe(fs.createWriteStream(`./tmp/${message.author.tag} [${message.author.id}].pdf`));
-      doc.image('./imgs/hiresdoddlecord.PNG', {
-        fit: [475, 200],
-        align: 'center',
-      });
-      doc.font('./fonts/Roboto-Thin.ttf').fontSize(11);
-      doc.text(`\nYour data ${message.author.tag}`, { align: 'center' });
-      const joinDateArray = `${message.guild.members.get(message.author.id).joinedAt}`.trim().split(/ +/g);
-      doc.text(`\nYou joined on ${joinDateArray[0]} ${joinDateArray[1]} ${joinDateArray[2]} ${joinDateArray[3]} at ${joinDateArray[4]}` || '\nYou joined on: No data', { align: 'center' });
-      doc.text(bot.text.gdpr);
-      archiveData((yearData, points, wordCount, channel, noDataCount) => {
-        let mark = false
-        for (let i = 0; i < yearData.length; i++) {
-          i += noDataCount // if there was no data in early years we add the amount of years with no data to i
-          mark = false
-          const argsDate = `${yearData[i][i].date}`.trim().split(/ +/g);
-          var year = argsDate[3]
-          doc.addPage() // second page
-          doc.fontSize(80)
-          doc.text(year, { align: 'center' })
-          doc.fontSize(20)
-          doc.text('Stats\n', { align: 'center' });
-          doc.fontSize(11)
-          // points
-          if (year > 2018) {
-            doc.text('Points gained in the year: ' + points[i] || 'No data', { align: 'center' })
-          } else {
-            doc.text('Points may have no data, this is normal for 2018', { align: 'center' })
-          }
-          // total message sent
-          doc.text(`Messages sent: ` + yearData[i].length, { align: 'center' })
-          // wordcount
-          doc.text('Word Count: ' + wordCount[i], { align: 'center' })
-          // top channles
-          doc.text('\nChannel usage (In no order)', { align: 'left' })
-          console.log(channel)
-          for (let z = 0; z < Object.keys(channel[i]).length; z++) {
-            var key = Object.keys(channel[i])
-            doc.text(`      ${key[z]} with ${channel[i][key[z]]} messages`, { align: 'left' })
-          }
-          // biggist message
-          for (let messageData = 0; messageData < yearData[i].length; messageData++) {
-            const argsDateM = `${yearData[i][messageData].date}`.trim().split(/ +/g);
-            function month() {
-              doc.addPage().fontSize(40).text(bot.months[argsDateM[1]]);
-              doc.fontSize(10);
-            }
-            function day() {
-              doc.fontSize(20).moveDown().text(`${argsDateM[0]}, ${argsDateM[2]}`);
-              doc.fontSize(10);
-            }
-            if (mark === false) {
-              mark = true
-              month()
-              day()
-            }
-            if (messageData > 0) {
-              const argsDateBefor = `${yearData[i][messageData -1].date}`.trim().split(/ +/g);
-              if (argsDateM[1] != argsDateBefor[1]) {
-                month()
-              }
-              if (argsDateM[0] != argsDateBefor[0]) {
-                day()
-              }
-            }
-            doc.text(`    ${argsDateM[4] || 'No data'} Message #${yearData[i][messageData].id || 'No data'} In channel: ${yearData[i][messageData].channel || 'No data'} Word count: ${yearData[i][messageData].messagecount || 'No data(Img)'} Points: ${yearData[i][messageData].pointsgained || "No data"}`);
-          }
         }
       })
-      setTimeout(() => { doc.end()
-        setTimeout(() => {
-          message.channel.send('Your Data:', {
-            files: [`./tmp/${message.author.tag} [${message.author.id}].pdf`],
-          });
-        }, 20000)
-      }, 10000)
     }
   }
 });
+
+// client.on('messageReactionAdd', (reaction, user) => {
+//   if (!user.bot) {
+//     console.log(reaction.message.embeds); 
+//     // role('add', user, '399633179314749440');
+//   }
+// });
+
+
+// Create a reaction collector
+// const filter = (reaction, user) => reaction.emoji.name === '👌' && user.id === 'someID'
+// message.awaitReactions(filter, { time: 15000 })
+//   .then(collected => console.log(`Collected ${collected.size} reactions`))
+//   .catch(console.error);
+
+
+// message.react(':thumbsup:').then(() => message.react(':thumbsdown:'));
+
+// const filter = (reaction, user) => {
+//     return [':thumbsup:', ':thumbsdown:'].includes(reaction.emoji.name) && user.id === message.author.id;
+// };
+
+// message.awaitReactions(filter, { max: 1, time: 60000, errors: ['time'] })
+//     .then(collected => {
+//         const reaction = collected.first();
+
+//         if (reaction.emoji.name === ':thumbsup:') {
+//             message.reply('you reacted with a thumbs up.');
+//         }
+//         else {
+//             message.reply('you reacted with a thumbs down.');
+//         }
+//     })
+//     .catch(collected => {
+//         console.log(`After a minute, only ${collected.size} out of 4 reacted.`);
+//         message.reply('you didn\'t react with neither a thumbs up, nor a thumbs down.');
+//     });
