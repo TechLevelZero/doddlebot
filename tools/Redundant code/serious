@@ -1,0 +1,59 @@
+          /*
+        if (args[0] === 'revoke') {
+          message.reply('Your access has been removed')
+          con.query(`UPDATE member_data SET serious = 0 WHERE userid = ${message.author.id}`);
+          role('remove', message, bot.role.serid)
+        } else {
+          con.query(`SELECT serious from member_data WHERE userid = ${message.author.id}`, (err, result) => {
+            if (result[0].serious === 2) {
+              message.channel.send('you already have access, if you want to remove it react with \u2705').then((msg) => {
+                msg.react('\u2705')
+                var reactReact = setInterval(() => {
+                  if (msg.reactions.get('\u2705').users.get(message.author.id) != undefined) {
+                    message.reply('Your access has been removed')
+                    con.query(`UPDATE member_data SET serious = 0 WHERE userid = ${message.author.id}`);
+                    role('remove', message, bot.role.serid)
+                    clearInterval(reactReact)
+                  }
+                }, 250)
+              });
+            } else {
+              con.query(`UPDATE commandusage SET count = count + 1 WHERE command = "${command}"`);
+              const embed = new MessageEmbed()
+                .setColor(0xFEF65B)
+                .setTitle('Serious chat opt in WARNING')
+                .setDescription(bot.text.serious);
+              message.channel.send({ embed }).then((msg) => {
+                setTimeout(() => {
+                  msg.react('\u2705')
+                  setTimeout(() => {
+                    var reactReact = setInterval(() => {
+                      if (msg.reactions.get('\u2705').users.get(message.author.id) != undefined) {
+                        message.reply('You now have access')
+                        con.query(`UPDATE member_data SET serious = 2 WHERE userid = ${message.author.id}`);
+                        role('add', message, bot.role.serid)
+                        msg.delete(1)
+                        clearInterval(reactReact)
+                      }
+                    }, 250)
+                    setTimeout(() => { clearInterval(reactReact) }, 25000)
+                  }, 1000)
+                }, 5000)
+                con.query(`UPDATE member_data SET serious = 1 WHERE userid = ${message.author.id}`);
+                function function2() {
+                  if (result[0].serious === 1) {
+                    con.query(`UPDATE member_data SET serious = 0 WHERE userid = ${message.author.id}`);
+                    const embed = new MessageEmbed()
+                      .setColor(0xFEF65B)
+                      .setTitle('Serious chat opt in WARNING')
+                      .setDescription('Timed Out');
+                    message.channel.send(embed);
+                    msg.delete(1)
+                  }
+                }
+                setTimeout(function2, 10000);
+              });
+            }
+          });
+        }
+        */

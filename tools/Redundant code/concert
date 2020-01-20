@@ -1,0 +1,68 @@
+        if (command === 'concerthelp') {
+          const embed = new MessageEmbed()
+            .setColor(0xFEF65B)
+            .setTitle("Concert command help!")
+            .setDescription('Uses this commanmd to set what venue you are going too.\n\nYou can use the country, venue or town/city name to refine your search.\n\nUsage: `d!concert UK or d!concert roundhouse`')
+          message.channel.send({ embed })
+        }
+
+        if (command === 'concert') {
+          var locationLocationLocation = []
+          let numbers = ["\u0031\u20E3", "\u0032\u20E3", "\u0033\u20E3", "\u0034\u20E3", "\u0035\u20E3", "\u0036\u20E3", "\u0037\u20E3", "\u0038\u20E3", "\u0039\u20E3"];
+          con.query(`SELECT * FROM venues_2019`, (err, result) => {
+            for (x in result) {
+              if (result[x].name.toLowerCase().match(args[0])) {
+                var locAndId = []
+                locAndId.push(result[x].name, result[x].roleid)
+                locationLocationLocation.push(locAndId)
+              }
+            }
+            if (locationLocationLocation.length === 1) {
+              message.reply('Added: ' + locationLocationLocation[0][0] + " To your roles")
+              role('add', message, locationLocationLocation[0][1])
+              return
+            }
+            if (locationLocationLocation.length === 0) {
+              message.channel.send('There was no results for this location, try changing your search word'); return
+            }
+            if (locationLocationLocation.length > 9) {
+              message.reply('There was too many results, try refine your search `E.G d!concert UK`'); return
+            } else {
+              var embedText = []
+              for (i in locationLocationLocation) {
+                embedText.push(numbers[i] + ' - ' + locationLocationLocation[i][0]
+                  + '\n')
+              }
+              const embed = new MessageEmbed()
+                .setColor(0xFEF65B)
+                .setTitle("React with the number of the venue you're attending")
+                .setDescription(embedText)
+                .setFooter('This will timeout in 15 Seconds')
+              message.channel.send({ embed }).then((msg) => {
+                for (var i = 0; i < locationLocationLocation.length; i++) {
+                  msg.react(numbers[i])
+                }
+                setTimeout(() => {
+                  var reactReact = setInterval(() => {
+                    for (let z = 0; z < locationLocationLocation.length; z++) {
+                      if (msg.reactions.get(numbers[z]).users.get(message.author.id) != undefined) {
+                        message.reply('Added: ' + locationLocationLocation[0][0] + " your roles")
+                        console.log(locationLocationLocation[z][1])
+                        role('add', message, locationLocationLocation[z][1])
+                        clearInterval(reactReact)
+                      }
+                    }
+                  }, 250)
+                  setTimeout(() => { clearInterval(reactReact) }, 15000)
+                }, locationLocationLocation.length * 1000)
+              });
+            }
+          })
+        }
+
+
+
+
+
+
+        \n\nd!concerthelp    -    `Add the role(s) to the venue(s) you are going too.`

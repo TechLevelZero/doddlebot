@@ -1,0 +1,65 @@
+    // const messageContent = [
+    //   [`${memberArray[x].userID}`, `${memberArray[x].displayName}`, `${memberArray[x].roles}`, `${result[0].level}`, `${result[0].points}`, `${result[0].totalpoints}`, `${result[0].serious}`],
+    // ];
+    // con.query('INSERT INTO member_data (`userid`, `nickname`, `roles`, `level`, `points`, `totalpoints`, `serious`) VALUES ?', [messageContent], (err3) => {
+    //   if (err3) throw err3;
+    //   console.log('User Metadata Archived');
+    // });
+
+    if (command === 'test1') {
+    var memberData = JSON.stringify(message.guild.members)
+    var memberArray = JSON.parse(memberData)
+    console.log(memberArray[55])
+    con.query(`SELECT * FROM userpoints`, (err4, result) => {
+        if (err4) throw err4;
+
+        for (var x = 0; x < memberArray.length; x++) {
+        for (var y = 0; y < result.length; y++) {
+            // console.log(result[x])
+            if (result[y].userid === memberArray[x].userID) {
+            const messageContent = [
+                [`${memberArray[x].userID}`, `${memberArray[x].displayName}`, `${memberArray[x].roles}`, `${result[y].level}`, `${result[y].points}`, `${result[y].totalpoints}`, `${result[y].serious}`],
+            ];
+            con.query(`UPDATE member_data SET level = ${result[y].level}, points = ${result[y].points}, totalpoints = ${result[y].totalpoints}, serious = ${result[y].serious} WHERE userid = ${memberArray[x].userID}`);
+            // con.query('INSERT INTO member_data (`userid`, `nickname`, `roles`, `level`, `points`, `totalpoints`, `serious`) WHERE userid = ${message.author.id}` VALUES ?', [messageContent], (err3) => {
+            //   if (err3) throw err3;
+            //   console.log('User Metadata Archived');
+            // });
+            }
+        }
+        }
+    });
+    }
+    
+    
+    if (command === 'hello') {
+    message.client.guilds.get("337013993669656586").members.fetch({ cache: false }).then((memberData) => {
+        var memberDataString = JSON.stringify(memberData)
+        var memberArray = JSON.parse(memberDataString)
+        for (var x = 0; x < memberArray.length; x++) {
+        const messageContent = [
+            [`${memberArray[x].userID}`, `${memberArray[x].displayName}`, `${memberArray[x].roles}`],
+        ];
+        con.query('INSERT INTO member_data (`userid`, `nickname`, `roles`) VALUES ?', [messageContent], (err3) => {
+            if (err3) throw err3;
+            console.log('User Metadata Archived');
+        });
+        }
+    })
+    
+    // console.log()
+    }
+    if (command === 'test') {
+    var memberData = JSON.stringify(message.guild.members)
+    var memberArray = JSON.parse(memberData)
+    console.log(memberArray.length)
+    for (var x = 0; x < memberArray.length; x++) {
+        const messageContent = [
+        [`${memberArray[x].userID}`, `${memberArray[x].displayName}`, `${memberArray[x].roles}`],
+        ];
+        con.query('INSERT INTO member_data (`userid`, `nickname`, `roles`) VALUES ?', [messageContent], (err3) => {
+        if (err3) throw err3;
+        console.log('User Metadata Archived');
+        });
+    }
+}

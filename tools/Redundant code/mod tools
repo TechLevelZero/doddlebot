@@ -1,0 +1,56 @@
+        ////////////////////////
+        /// Moderation Tools ///
+        ////////////////////////
+        if (message.channel.id === bot.channels.themods || bot.channels.thejoshes || bot.channels.thebot || bot.channels.testfacility) {
+          function fun(callback) {
+            // humanCorrectionControl
+            if (args[0] === undefined) { 
+              return message.channel.send('d!kick [Passcode] [@User] [Reason]'), message.delete(1)
+            } else if (message.mentions.users.first() === undefined) { 
+              return message.channel.send('No Member(s) was given'), message.delete(1)
+            }
+
+            const user = message.mentions.users.first();
+            const member = message.guild.member(user);
+            const contentHashed = crypto.createHmac('sha256', config.key).update(args[0]).digest('hex');
+            if (contentHashed != dbData[0].passcode) return message.channel.send('Passcode did not match'), message.delete(1);
+            callback(user, member) 
+          }
+          if (command === 'kick') {
+            fun((user, member) => {
+              message.delete(1)
+              message.reply(`Successfully kicked ${user.tag}. Reason: ${message.cleanContent.slice(8 + user.tag.length) || 'No Reason'}`);
+              member.kick(message.cleanContent.slice(4 + user.tag.length)).then(() => {
+                message.delete(1)
+                message.reply(`Successfully kicked ${user.tag}. reason: ${message.cleanContent.slice(4, user.tag.length)}`);
+              }).catch(err => {
+                message.delete(1)
+                message.reply('Unable to kick the member');
+                console.error(err);
+              });
+            })
+          }
+          if (command === 'ban') {
+            fun()
+            member.ban({
+              reason: message.cleanContent.slice(3, user.tag.length),
+            }).then(() => {
+              message.delete(1)
+              message.reply(`Successfully banned ${user.tag}`);
+            }).catch(err => {
+              message.delete(1)
+              message.reply('Unable to ban the member');
+              console.error(err);
+            });
+          }
+          if (command.match(/\b(automember|am)\b/g)) {
+            if (args[0] === undefined) return message.channel.send('Usage: `d!automember/d!am [on/off]`')
+            if (args[0].match( /\b(on|off)\b/g )) {
+              if (args[0] === 'on') { con.query('UPDATE commandusage SET count = 1 WHERE id = 21') }
+              if (args[0] === 'off') { con.query('UPDATE commandusage SET count = 0 WHERE id = 21') }
+              message.channel.send('AutoMember is now ' + args[0])
+            } else {
+              message.channel.send('Usage: `d!automember/d!am [on/off]`')
+            }
+          }
+        }
