@@ -1,0 +1,36 @@
+      if (command === 'stats') {
+        con.query(`UPDATE commandusage SET count = count + 1 WHERE command = "${command}"`);
+        con.query('SELECT id, messagecount FROM archive ORDER BY id DESC LIMIT 1', (err1, result1) => {
+          con.query('SELECT messagecount FROM archive WHERE id = 0', (err2, result2) => {
+            const embed = new MessageEmbed()
+              .setColor(0xFEF65B)
+              .setTitle(`${message.guild.name} Details`)
+              .addField('Members', `${message.guild.memberCount - message.guild.members.filter(member => member.user.bot).size} Members`)
+              .addField('Bots', `${message.guild.members.filter(member => member.user.bot).size} Bots`)
+              .addField('Channels', `${message.guild.channels.filter(chan => chan.type === 'voice').size} voice / ${message.guild.channels.filter(chan => chan.type === 'text').size} text`)
+              .addField('Message Count', result1[0].id)
+              .addField('Wordcount', result2[0].messagecount)
+              // Need to reimplement total points give out
+            message.channel.send({ embed });
+          });
+        });
+        topx(message, 5, "total", () => {
+          const embed = new MessageEmbed()
+            .setTitle('Top 5 of all time')
+            .setColor(0xFEF65B)
+          for (var j = 0; j < globalPlsWork.length; j++) {
+            embed.addField(`#${j+1}: ${globalPlsWork[j].username}`, `At level **${globalPlsWork[j].level}** with **${globalPlsWork[j].points}** points`);
+          }
+          message.channel.send({ embed });
+        });
+        // Bot commands used
+        con.query('SELECT command, count FROM commandusage', (err, result) => {
+          const embed = new MessageEmbed()
+            .setColor(0xFEF65B)
+            .setTitle('Command Usage');
+          for (let i = 0; i < 18; i++) {
+            embed.addField(`${result[i].command}`, `used ${result[i].count} time(s)`);
+          }
+          message.channel.send({ embed });
+        });
+      }

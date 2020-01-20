@@ -1,0 +1,27 @@
+        const job = new CronJob('* * * *', function() {
+          topx(message, 5, "weekly", () => {
+            const embed = new MessageEmbed()
+            embed.setColor(0xFEF65B)
+            embed.setTitle("doddlecord's Top 5 of this week")
+            for (var j = 0; j < globalPlsWork.length; j++) {
+              embed.addField(`#${j+1}: ${globalPlsWork[j].username}`, `At level **${globalPlsWork[j].level}** with **${globalPlsWork[j].points}** points`);
+            }
+            message.channel.send({ embed });
+            message.channel.send('Is this ok to send and use? (d!send)');
+          });
+        });
+
+        if (message.channel.name === 'secrets-for-the-mods') {
+          if (command === 'thisweekstop5') {
+            topx(message, 5, "weekly", () => {
+              const embed = new MessageEmbed()
+              embed.setColor(0xFEF65B)
+              embed.setTitle("doddlecord's Top 5 of this week")
+              for (var j = 0; j < globalPlsWork.length; j++) {
+                embed.addField(`#${j+1}: ${globalPlsWork[j].username}`, `At level **${globalPlsWork[j].level}** with **${globalPlsWork[j].points}** points`);
+              }
+              message.channel.send({ embed });
+              message.channel.send('Is this ok to send and use? (d!send)');
+            });
+          }
+        }

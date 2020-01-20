@@ -5,8 +5,6 @@ fonts/
 
 imgs/
 
-json_files/
-
 node_modules/
 
 tmp/
@@ -18,3 +16,7 @@ tmp/
 txt_files/
 
 command lists/
+
+copm.js
+
+json_files/

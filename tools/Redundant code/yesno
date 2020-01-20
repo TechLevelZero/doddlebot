@@ -1,0 +1,22 @@
+      if (command === 'yes') {
+        con.query(`SELECT serious from member_data WHERE userid = ${message.author.id}`, (err, result) => {
+          if (result[0].serious === 1) {
+            role('add', message, bot.role.serid);
+            message.channel.send('You now have access');
+            con.query(`UPDATE member_data SET serious = 2 WHERE userid = ${message.author.id}`);
+          } else {
+            message.channel.send('Use d!serious first');
+          }
+        });
+      }
+
+      if (command === 'no') {
+        con.query(`SELECT serious from member_data WHERE userid = ${message.author.id}`, (err, result) => {
+          if (result[0].serious === 1) {
+            con.query(`UPDATE member_data SET serious = 0 WHERE userid = ${message.author.id}`);
+            message.channel.send('Got it');
+          } else {
+            message.channel.send('Use d!serious first');
+          }
+        });
+      }
