@@ -1,29 +1,31 @@
 {
-    "name": "doddlebot",
-    "version": "1.3.0",
-    "description": "This is a ~~small~~ big bot made for the doddlecord discord server",
-    "main": "index.js",
-    "dependencies": {
-      "ascii-table": "^0.0.9",
-      "discord.js": "^11.4.2",
-      "moment-timezone": "^0.5.23",
-      "mysql": "^2.16.0",
-      "pdfkit": "^0.9.0",
-      "upsidedown": "^0.0.5",
-      "external-ip": "^2.1.1"
-    },
-    "devDependencies": {},
-    "scripts": {
-      "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "repository": {
-      "type": "git",
-      "url": "git+https://github.com/TechLevelZero/doddlebot.git"
-    },
-    "author": "TechLevelZero",
-    "license": "MIT",
-    "bugs": {
-      "url": "https://github.com/TechLevelZero/doddlebot/issues"
-    },
-    "homepage": "https://github.com/TechLevelZero/doddlebot#readme"
-  }
+  "name": "doddlebot",
+  "version": "1.3.0",
+  "description": "This is a ~~small~~ big bot made for the doddlecord discord server",
+  "main": "index.js",
+  "dependencies": {
+    "ascii-table": "^0.0.9",
+    "bufferutil": "^4.0.1",
+    "cron": "^1.8.1",
+    "discord.js": "^11.4.2",
+    "external-ip": "^2.1.1",
+    "moment-timezone": "^0.5.23",
+    "mysql": "^2.17.1",
+    "pdfkit": "^0.9.0",
+    "upsidedown": "^0.0.5"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TechLevelZero/doddlebot.git"
+  },
+  "author": "TechLevelZero",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/TechLevelZero/doddlebot/issues"
+  },
+  "homepage": "https://github.com/TechLevelZero/doddlebot#readme"
+}
