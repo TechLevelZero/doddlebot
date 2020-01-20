@@ -267,10 +267,6 @@ client.on('ready', () => {
 // New memeber procedure
 // Discord login, looks to see if in DEV or STABLE branch
 client.on('guildMemberAdd', (member) => {
-  if (member.user.tag.match('discord.gg/')) {
-    message.member.kick(message.author.id);
-    return;
-  } 
   justJoined == true
   if (__dirname.match('STABLE')) {
     message = member
@@ -416,6 +412,7 @@ client.on('message', (message) => {
             });
           }
         }
+        // needs removeing
         if (message.content.match('d!passcode')) {
           if (dbData[0].passcode === '0') {
             if (args[0].length === 4) {
@@ -440,6 +437,7 @@ client.on('message', (message) => {
             } else { message.channel.send('passcode does not match') } // fight me,  like this style 
           }
         }
+        //////////////////
       } else {
         const pointsRandom = (Math.floor(Math.random() * 18) + 5);
         if (message.content.length > 13) {
@@ -833,7 +831,7 @@ client.on('message', (message) => {
               embed.setTitle("doddlecord's Top 5 of this week")
               for (var j = 0; j < globalPlsWork.length; j++) {
                 embed.addField(`#${j+1}: ${globalPlsWork[j].username}`, `At level **${globalPlsWork[j].level}** with **${globalPlsWork[j].points}** points`);
-                message.guild.members.get(globalPlsWork[k].userid).roles['add'](bot.role.top5);
+                message.guild.members.get(globalPlsWork[j].userid).roles['add'](bot.role.top5);
               }
               channel('announcements').send({ embed });
             });
@@ -848,17 +846,13 @@ client.on('message', (message) => {
 
         if (message.channel.name === 'secrets-for-the-mods') {
           if (command === 'updateembed') {
-            // channel('announcements').send('@everyone');
+            channel('announcements').send('@everyone');
             const embed = new MessageEmbed()
               .setColor(0xFEF65B)
-              .setTitle('doddlebot 1.2.6 The Time Update')
-              .addField('d!time', 'This shows the local time of the member use: `d!timehelp` for more info')
-              .addField('d!top [number]', 'Now d!top10 can use any number up to 25 use: `d!top [number]')
-              .addField('d!mcserver', 'This will show the version and the IP of the MC server')
-              .addField('d!forget', 'In DMs with doddlebot you can remove all your data now, use the command `d!forget` for more info')
-              .addField('Bug fixes', 'doddlebot should no longer welcome members back who have never been here before, hopefully it\'s a weird bug')
-              .addField('Upcoming features', 'Opting out of doddlebot data completely is beeing worked on');
-            channel('announcements').send({ embed });
+              .setTitle("doddlebot 1.3 The update (its finally done)")
+              .setDescription('1.3 is finally out and with it brings alot of new features you may have alrady used!\n\nHere is a list of the new ones!\n\n**Member Profiles**\nWith profiles you can see: Rank, Member stats, Roles, and More\n`Usage: d!profile to get your profile or @[member] to get there profile`\n\n**Time**\n`d!timehelp` to get more info.\n\n**RewindPDF**\n(You need to allow DMs from doddlebot) but with this you can get stats about your time on doddlecord in a nice PDF format.\nDM doddlebot `d!data` to get your PDF\n\n**Roles on intro**\nAs you have probably seen doddlebot now gives roles to new members if there intro has certan keywords in it.\n\n**Weekly top 5**\nIt finaly got automated, well kida... but thats for the mods to figure out. Expect the Weekly top 5 every Sunday just after 12pm GMT\n\n**Revoke Serious Access**\nYou can now remove serious chat access at your own will\n\n**Command Changes**\nIn this update some commands have changed. All the help menus have been updated to reflect this!')
+              .setFooter('bug fixes\nd!time would get stuck in a loop.     An issue was found with AutoMember2.0 and was turned back on with v2.0.1.     Level up message was sending into serious chat.     male role was not being added when requested.     A members most recent nickname/username was not being used.     RewindPDF was not spawning child process');
+            channel('announcements').send(embed);
           }
         }
         // Boo!
@@ -1137,17 +1131,7 @@ client.on('message', (message) => {
         }
 
         if (command === 'hello') {
-          const embed = new MessageEmbed()
-            .setColor(0xFEF65B)
-            .setTitle("doddlebot 1.3 The update (its finally done)")
-            .setDescription('1.3 is finally out and with it brings alot of new features you may have alrady used!\n\nHere is a list of the new ones!\n\n**Member Profiles**\n    With profiles you can see: Rank, Member stats, Roles, and More\n`Usage: d!profile to get your profile or @[member] to get there profile`\n\n**Time**\n`d!timehelp` to get more info.\n\n**RewindPDF**\n(You need to allow DMs from doddlebot) but with this you can get stats about your time on doddlecord in a nice PDF format.\nDM doddlebot `d!data` to get your PDF\n\n**Roles on intro**\nAs you have probably seen doddlebot now gives roles to new members if there intro has certan keywords in it.\n\n**Weekly top 5**\nThis is fianly automated, so now every week at 12:00pm GMT the top five will come out!')
-            // .addField('**__Member Profiles__**', 'With profiles you can see: Rank, Member stats, Roles, and More, `Usage: d!profile to get your profile or @[member] to get there profile')
-            // .addField('Time', 'use `d!timehelp` to get more info.')
-            // .addField('RewindPDF', '(With this you need to allow DMs from doddlebot) but this you can get stats about your time on doddlecord in a nice PDF format. DM doddlebot `d!data` to get your PDF')
-            // .addField('Roles on intro', 'As you have probably seen doddlebot now gives roles to new members if there intro has certan keywords in');
-            .addField('Command Changes', 'In this update some commands have changed. All the help menus have been updated to reflect this!')
-            .addField('Weekly Top 5', 'It finaly got automated, well kida... but thats for the mods to figure out. Expect the Weekly top 5 every Sunday just after 12pm GMT')
-          message.channel.send({ embed })
+
         }
         if (command === 'test') {
           const serverChannels = client.guilds.get('337013993669656586').channels;
