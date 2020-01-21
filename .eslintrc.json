@@ -17,7 +17,7 @@
 
 
 	"rules":{
-			"quotes": ["error", "double"],
+			"quotes": ["error", "single"],
 			"comma-dangle": "off",
 			"no-console":"off",
 			"quote-props":"off",
@@ -34,7 +34,7 @@
 			"max-lines-per-function": "off",
 			"max-lines": "off",
 			"no-unused-vars":"off",
-			"indent": ["error", "tab"],
+			"indent": ["error", 2],
 			"linebreak-style": "off",
 			"no-tabs": "off",
 			"prefer-destructuring": "off",
@@ -51,7 +51,9 @@
 			"operator-linebreak": ["error", "after"],
 			"no-loop-func": "warn",
 			"no-redeclare": ["error", { "builtinGlobals": true }],
-			"no-prototype-builtins": "off"
+			"no-prototype-builtins": "off",
+			"no-empty": "warn",
+			"no-inner-declarations": "warn"
 	}
 
 }
