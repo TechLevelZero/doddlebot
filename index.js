@@ -154,13 +154,13 @@ function memberData(userID, displayName, roles) {
     if (err) {
       console.log(err)
       client.channels.get('400762131252772866').send(`There was an error with ${displayName}'s (${userID}) data, doddlebot has recoved but the DB table may need checking`)
-    } 
+    }
     console.log('New Member Data Added To The Table'); });
 }
 
 /**
  * loggerSQL function
- * @param  {string} type - Types of logssql 
+ * @param  {string} type - Types of logssql
  * - system
  * - info
  * - error
@@ -344,9 +344,9 @@ client.on('message', message => {
       }
     })
   });
-  
+
   memberPromise.then(function(value) {
-    
+
     con.query(`SELECT * FROM member_data WHERE userid = ${message.author.id}`, (err4, dbData) => {
       const args = message.content.toLowerCase().slice(config.prefix.length).trim().split(/ +/g);
       const command = args.shift().toLowerCase();
@@ -360,7 +360,7 @@ client.on('message', message => {
 
       if (dbData[0].nickname === undefined) return message.channel.send('An error with you member data has occurred')
       if (message.author.bot) return;
-  
+
       // const msgCount = count(message.cleanContent);
       var pattern = /[a-zA-Z0-9_\u0392-\u03c9\u00c0-\u00ff\u0600-\u06ff]+|[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff\u3040-\u309f\uac00-\ud7af]+/g;
 
@@ -387,7 +387,7 @@ client.on('message', message => {
             const dateOfPDF = new Date(parseInt(dbData[0].dataepoch))
             const nextDate = new Date(parseInt(dbData[0].dataepoch) + 6.048e+8); // The 0 there is the key, which sets the date to the epoch
             message.channel.send('Getting your data...')
-            setTimeout(() => { 
+            setTimeout(() => {
               message.channel.send(' You can only do this once a week, The next time you can request your PDF is after ' + nextDate.toUTCString())
             }, 1500)
             console.log(args[0])
@@ -434,7 +434,7 @@ client.on('message', message => {
                   })
                 } else { message.channel.send('The passcode can only be 4 digits long') }
               }
-            } else { message.channel.send('passcode does not match') } // fight me,  like this style 
+            } else { message.channel.send('passcode does not match') } // fight me,  like this style
           }
         }
         //////////////////
@@ -602,7 +602,7 @@ client.on('message', message => {
                   });
                 }
               }
-            }); 
+            });
           }
           con.query('SELECT count FROM commandusage WHERE id = 21', (err, result) => {
             if (result[0].count === 0) return;
@@ -623,7 +623,7 @@ client.on('message', message => {
             });
           }
         })
-        
+
         if (message.content.indexOf(config.prefix) !== 0) return;
 
         // colour stuff
@@ -801,7 +801,7 @@ client.on('message', message => {
 
         if (command === 'ukhelplines') {
           const embed = new MessageEmbed()
-            .setColor(0xFEF65B) 
+            .setColor(0xFEF65B)
             .setTitle('UK Helplines')
             .setDescription(bot.text.uk);
           message.channel.send({ embed });
@@ -917,14 +917,14 @@ client.on('message', message => {
                   m++;
                 if (mf<m)
                 {
-                  mf=m; 
+                  mf=m;
                   item = popChannel[i];
                 }
               }
               m=0;
             }
           }
-          
+
           if (args[0] != null) {
             if (message.mentions.users.first() === undefined) return message.channel.send('That is not a member, usages: `d!profile [@member]`');
             var mentionedUser = message.mentions.users.first();
@@ -940,8 +940,8 @@ client.on('message', message => {
                 message.channel.send({ embed }).then(msg => {
                   count(archive)
                   arrayRole(mentioned.roles.map(role => {return role.id}))
-      
-                  const joinDateArray = `${message.client.guilds.get('337013993669656586').members.get(message.mentions.users.first().id).joinedAt}`.trim().split(/ +/g); 
+
+                  const joinDateArray = `${message.client.guilds.get('337013993669656586').members.get(message.mentions.users.first().id).joinedAt}`.trim().split(/ +/g);
                   const embed = new MessageEmbed()
                     .setColor(mentioned.displayHexColor)
                     .setTitle(`${mentioned.displayName}'s Profile`, true)
@@ -1143,7 +1143,7 @@ client.on('message', message => {
               logger('system', client.user, `This week, ${prune} members have been removed`);
               serverChannels.get(bot.channels.testfacility).send(`This week, ${prune} members have been pruned`)
             })
-      
+
             topx(message, 5, 'weekly', () => {
               const embed = new MessageEmbed()
               embed.setColor(0xFEF65B)
@@ -1156,7 +1156,7 @@ client.on('message', message => {
               for (var k = 0; k < top5remove.length; k++) {
                 console.log('hh')
               }
-      
+
               role('remove', message, bot.role.top5);
               serverChannels.get(bot.channels.testfacility).send({ embed });
               serverChannels.get(bot.channels.testfacility).send('@everyone, does this look ok? Is it sunday? If everything is ok, use d!send to publish')

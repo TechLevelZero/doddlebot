@@ -7,14 +7,8 @@
 	},
 
   "env": {
-    "node": true,
-    "browser": true
+    "node": true
 	},
-
-  "globals": {
-    "exampleGlobalVariable": true
-  },
-
 
 	"rules":{
 			"quotes": ["error", "single"],
