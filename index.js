@@ -1,3 +1,5 @@
+/* eslint-disable no-plusplus */
+/* eslint-disable no-inner-declarations */
 /* eslint no-implicit-globals: "error", consistent-return: 0, no-console: 0 */
 
 // doddlebot 1.3 WiP author: Ben Hunter
@@ -266,7 +268,7 @@ client.on('ready', () => {
 
 // New memeber procedure
 // Discord login, looks to see if in DEV or STABLE branch
-client.on('guildMemberAdd', (member) => {
+client.on('guildMemberAdd', member => {
   justJoined == true
   if (__dirname.match('STABLE')) {
     const message = member
@@ -328,6 +330,7 @@ perscommandList = perscommandList.join('\n');
 
 client.on('message', message => {
   // This checks if the member had data on the db if not it will insert a new row with the members data
+  // eslint-disable-next-line no-undef, 'Promise' IS FUCKING NATIVE allie this is why I hate eslint
   var memberPromise = new Promise(function(resolve, reject) {
     con.query(`SELECT * FROM member_data WHERE userid = ${message.author.id}`, (err4, dbData) => {
       if (justJoined === true) return;
@@ -1130,9 +1133,6 @@ client.on('message', message => {
           time()
         }
 
-        if (command === 'hello') {
-
-        }
         if (command === 'test') {
           const serverChannels = client.guilds.get('337013993669656586').channels;
           const Channel = serverChannels.get(bot.channels.general);
