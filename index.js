@@ -680,7 +680,7 @@ client.on('message', message => {
             }
             if (per1 === 'all') {
               if (per0 === 'remove') {
-                const toRemove = ['gay', 'straight', 'bisexual', 'asexual', 'pansexual', 'female', 'male', 'lesbian', 'non binary', 'fluid', 'agender', 'hehim', 'sheher', 'theythem', 'trans'];
+                const toRemove = ['gay', 'straight', 'bisexual', 'asexual', 'pansexual', 'female', 'male', 'lesbian', 'non binary', 'fluid', 'agender', 'hehim', 'sheher', 'theythem', 'trans', 'homoromantic', 'hetroromantic', 'biromantic', 'aromantic', 'panromantic'];
                 for (let i = 0; i < toRemove.length; i++) {
                   role('remove', message, bot.role[toRemove[i].concat('id')]);
                 }
