@@ -7,6 +7,7 @@
 	},
 
   "env": {
+		"es6": true,
     "node": true
 	},
 
@@ -15,7 +16,7 @@
 			"comma-dangle": "off",
 			"no-console":"off",
 			"quote-props":"off",
-			"no-plusplus": ["warn", { "allowForLoopAfterthoughts": true }],
+			"no-plusplus": "off",
 			"no-restricted-globals": ["error", "event", "fdescribe"],
 			"no-inline-comments": "off",
 			"line-comment-position": "off",
@@ -47,7 +48,9 @@
 			"no-redeclare": ["error", { "builtinGlobals": true }],
 			"no-prototype-builtins": "off",
 			"no-empty": "warn",
-			"no-inner-declarations": "warn"
+			"no-inner-declarations": "off",
+			"no-implicit-globals": "error",
+			"consistent-return": "off"
 	}
 
 }
