@@ -1,3 +1,4 @@
+
 // doddlebot 1.3 WiP author: Ben Hunter
 
 const { Client, MessageEmbed } = require('discord.js');
@@ -311,18 +312,6 @@ client.on('guildMemberRemove', remember => {
   logger('info' , remember, `${remember.user.tag} Has left ${remember.guild.name}`);
   channel('general').send(`${remember.user.tag.slice(0, -5)} has left, can we get some Fs in chat please`)
 });
-
-
-let perscommandList = [];
-
-let key = Object.keys(bot.newRoles)
-
-for (key in bot.newRoles) {
-  if (!key.includes('/')) {
-    perscommandList.push(key);
-  }
-}
-perscommandList = perscommandList.join('\n');
 
 client.on('message', message => {
   // This checks if the member had data on the db if not it will insert a new row with the members data
@@ -764,26 +753,20 @@ client.on('message', message => {
         }
 
         if (command === 'roleshelp') {
+
           con.query(`UPDATE commandusage SET count = count + 1 WHERE command = "${command}"`);
+
           const embed = new MessageEmbed()
             .setColor(0xFEF65B)
             .setTitle('**Personal Role Help**')
             .setDescription('Personal roles are added to give a little info on who you are to other members of doddlecord.\nThey are completely optional roles though. Make __shore__ you spell them correctly or it will not add them!')
             .addField('Use', '```d!roles [remove] Gay Hehim Artist```')
-            .addField('**Commands**', (perscommandList));
-          message.channel.send({ embed });
-        }
-
-        if (command === 'allhelp') {
-          con.query(`UPDATE commandusage SET count = count + 1 WHERE command = "${command}"`);
-          const embed = new MessageEmbed()
-            .setColor(0xFEF65B)
-            .setTitle('**All Help**')
-            .setDescription('Every command I can do!')
-            .addField('**Category Commands**', (bot.commandLists.catogery))
-            .addField('**Other Commands**', (bot.commandLists.other))
-            .addField('**Colour Commands**', (bot.commandLists.colour))
-            .addField('**Personal Commands**', (perscommandList));
+            .addField('**Identity  Roles**', (bot.identityRoles), true)
+            .addField('**Sexualty Roles**', (bot.sexualtyRoles), true)
+            .addField('**Romantic Roles**', (bot.romanticRoles), true)
+            .addField('**Pronun Roles**', (bot.pronunRoles), true)
+            .addField('**Extra Roles**', (bot.extraRoles), true)
+            .addBlankField(true);
           message.channel.send({ embed });
         }
 
