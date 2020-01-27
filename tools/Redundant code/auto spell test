@@ -1,0 +1,86 @@
+        if (command === 'test') {
+          let numbers = ["\u0031\u20E3", "\u0032\u20E3", "\u0033\u20E3", "\u0034\u20E3", "\u0035\u20E3", "\u0036\u20E3", "\u0037\u20E3", "\u0038\u20E3", "\u0039\u20E3"];
+          const rolesNames = ['gay', 'straight', 'bisexual', 'asexual', 'pansexual', 'female', 'male', 'lesbian', 'nonbinary', 'fluid', 'agender', 'hehim', 'sheher', 'theythem', 'trans', 'homoromantic', 'hetroromantic', 'biromantic', 'aromantic', 'panromantic'];
+          // console.log(rolesNames.length)
+          let zero = []
+          let one = []
+
+          for(var ii = 0; ii < 20; ii++) {
+            for(var gg = 0; gg < args.length; gg++) {
+              if (compare(rolesNames[ii], args[gg]) < 3) {
+                // console.log(compare(rolesNames[ii], args[gg]), rolesNames[ii])
+                if (compare(rolesNames[ii], args[gg]) === 0) {
+                  zero.push(args[gg])
+                }
+                if (compare(rolesNames[ii], args[gg]) === 1 ^ 2) {
+                  // if (rolesNames[ii].match(zero)) return
+                  one.push([args[gg], rolesNames[ii]])
+                }
+              }
+            }
+          }
+
+          // 2 => 1 => 0 this way we are left with uncorret in 1 and 2 arrys
+          // const theless = Math.min(one.length, two.length)
+          for (let o = 0; o < zero.length; o++) {
+            // console.log(two.filter(e => e !== one[o])) 
+            for (var i=one.length-1; i>=0; i--) {
+              if (one[i][0] === zero[o]) {
+                one.splice(i, 1);
+                // break;       //<-- Uncomment  if only the first term has to be removed
+              }
+            }
+          }
+          let w = ''
+          let t = ''
+          for (let p = 0; p < one.length; p++) {
+            t += (one[p][0] + ' => ' + one[p][1] + ': ' + numbers[p] + '\n')
+          }
+
+          for (let p = 0; p < zero.length; p++) {
+            w += (zero[p] + '\n')
+          }
+
+          const embed = new MessageEmbed()
+            .setColor(0xFEF65B)
+            .setTitle('Roles added')
+            .setDescription(w)
+            .addField('Looks like one or more has been misspelt, did you mean?', t);
+          // eslint-disable-next-line arrow-parens
+          message.channel.send({ embed }).then((msg) => {
+            for (var i = 0; i < one.length; i++) {
+              msg.react(numbers[i])
+            }
+            setTimeout(() => {
+              const filter = (reaction, user) => { 
+                user.id === message.author.id &&
+
+              }
+              const collector = message.createReactionCollector(filter, { time: 15000 });
+              collector.on('collect', r => console.log(`Collected ${r.emoji.name}`));
+              collector.on('end', collected => console.log(`Collected ${collected.size} items`));
+
+
+              var reactReact = setInterval(() => {
+                for (let z = 0; z < one.length; z++) {
+                  if (msg.reactions.get(numbers[z]).users.get(message.author.id) != undefined) {
+                    // one.splice(z, 1);
+                    w += one[z][1]
+                    const embed = new MessageEmbed()
+                      .setColor(0xFEF65B)
+                      .setTitle('Roles added')
+                      .setDescription(w)
+                      .addField('Looks like one or more has been misspelt, did you mean?', t);
+                    msg.edit({ embed })
+                    msg.reactions.get(numbers[z]).users.get(message.author.id).remove
+                    // message.reply('Added: ' + one[z][1] + ' your roles')
+                    // console.log(locationLocationLocation[z][1])
+                    // role('add', message, locationLocationLocation[z][1])
+                    // clearInterval(reactReact)
+                  }
+                }
+              }, 250)
+              setTimeout(() => { clearInterval(reactReact) }, 15000)
+            }, one.length * 1000)
+          })
+        }
