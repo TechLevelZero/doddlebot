@@ -9,7 +9,7 @@ const mysql = require('mysql');
 const { execFile } = require('child_process')//.spawn;
 const upsidedown = require('upsidedown');
 var moment = require('moment-timezone');
-// const compare = require('js-levenshtein'); to be used for intro comparions
+const compare = require('js-levenshtein'); // to be used for intro comparions
 const extIP = require('external-ip')();
 const fs = require('fs');
 const CronJob = require('cron').CronJob
@@ -253,8 +253,8 @@ client.on('ready', () => {
           }
           console.log(top5remove + 'the 5 removed')
         }, 1000);
-        // serverChannels.get(bot.channels.themods).send({ embed });
-        // serverChannels.get(bot.channels.themods).send('everyone, does this look ok? Is it sunday? If everything is ok, use d!send to publish')
+        serverChannels.get(bot.channels.themods).send({ embed });
+        serverChannels.get(bot.channels.themods).send('@everyone, does this look ok? Is it sunday? If everything is ok, use d!send to publish')
       });
     })
   });
@@ -1109,37 +1109,6 @@ client.on('message', message => {
             }
           }
           time()
-        }
-
-        if (command === 'test') {
-          const serverChannels = client.guilds.get('337013993669656586').channels;
-          const Channel = serverChannels.get(bot.channels.general);
-          Channel.messages.fetch(Channel.lastMessageID).then(message => {
-            client.guilds.get('337013993669656586').members.prune({
-              days: 7, reason: 'members have not introduced them selfs within and have been offline for 7 days'
-            }).then(prune => {
-              logger('system', client.user, `This week, ${prune} members have been removed`);
-              serverChannels.get(bot.channels.testfacility).send(`This week, ${prune} members have been pruned`)
-            })
-
-            topx(message, 5, 'weekly', () => {
-              const embed = new MessageEmbed()
-              embed.setColor(0xFEF65B)
-              embed.setTitle('doddlecord\'s Top 5 of this week')
-              for (var j = 0; j < globalPlsWork.length; j++) {
-                embed.addField(`#${j+1}: ${globalPlsWork[j].username}`, `At level **${globalPlsWork[j].level}** with **${globalPlsWork[j].points}** points`);
-                message.guild.members.get(globalPlsWork[j].userid).roles['remove'](bot.role.top5);
-              }
-              const top5remove = message.guild.roles.get(bot.role.top5).members.map(m=>{return m.user.tag});
-              for (var k = 0; k < top5remove.length; k++) {
-                console.log('hh')
-              }
-
-              role('remove', message, bot.role.top5);
-              serverChannels.get(bot.channels.testfacility).send({ embed });
-              serverChannels.get(bot.channels.testfacility).send('@everyone, does this look ok? Is it sunday? If everything is ok, use d!send to publish')
-            });
-          })
         }
       }
     });

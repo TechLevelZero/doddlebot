@@ -18,3 +18,5 @@ command lists/
 copm.js
 
 json_files/
+
+*.db
