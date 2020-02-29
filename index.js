@@ -389,8 +389,8 @@ client.on('message', message => {
               message.channel.send('If you think anything is wrong with your PDF please don\'t hesitate to DM TechLevelZero')
             }, 25000)
           } else {
-            const dateOfPDF = new Date(parseInt(dbData[0].dataepoch))
-            const nextDate = new Date(parseInt(dbData[0].dataepoch) + 6.048e+8); // The 0 there is the key, which sets the date to the epoch
+            const dateOfPDF = new Date(parseInt(dbData['dataepoch']))
+            const nextDate = new Date(parseInt(dbData['dataepoch']) + 6.048e+8); // The 0 there is the key, which sets the date to the epoch
             message.channel.send('You have alrady requested your data this past week. The next time you can request your data is after ' + nextDate.toUTCString())
             message.channel.send(`Here is your PDF from ${dateOfPDF.toUTCString()}`, {
               files: [`./tmp/${message.author.tag} [${message.author.id}].pdf`],
@@ -398,62 +398,44 @@ client.on('message', message => {
           }
         }
       } else {
-        // 
-        // fuck me this defantly needs a full rework, desabled for now as i don't want to put work in when it maybe undone
-        // 
-        // const pointsRandom = (Math.floor(Math.random() * 18) + 5);
-        // if (message.content.length > 13) {
-        //   con.query(`SELECT * FROM member_data WHERE userid = ${message.author.id}`, (err, result) => {
-        //     if (result.length > 0) {
-        //       // ARRAY THIS
-        //       con.query(`UPDATE member_data SET points = points + ${pointsRandom} WHERE userid = ${message.author.id}`);
-        //       con.query(`UPDATE member_data SET totalpoints = totalpoints + ${pointsRandom} WHERE userid = ${message.author.id}`);
-        //       if (result[0].level * 100 < result[0].points) {
-        //         con.query(`UPDATE member_data SET points = 0 WHERE userid = ${message.author.id}`);
-        //         con.query(`SELECT totalpoints FROM member_data WHERE userid = ${message.author.id}`, (err4, totalPointsResult) => {
-        //           console.log(totalPointsResult)
-        //           console.log(totalPointsResult[0])
-        //           console.log(totalPointsResult[0].totalpoints)
-        //           const resultJsonObjTotalPoints = JSON.stringify(totalPointsResult);
-        //           const totalPointsSlice = resultJsonObjTotalPoints.slice(16, -4);
-        //           const totalpoints = totalPointsSlice.concat('00');
-        //           con.query(`UPDATE member_data SET totalpoints = ${totalpoints} WHERE userid = ${message.author.id}`);
-        //           setTimeout(() => {
-        //             con.query(`SELECT userid, nickname FROM member_data WHERE userid = ${message.author.id}`, (err, result) => {
-        //               if (result[0].nickname != message.member.displayName) {
-        //                 con.query(`UPDATE member_data SET nickname = ? WHERE userid = ${message.author.id}`, [message.member.displayName]);
-        //               }
-        //             });
-        //             con.query(`SELECT userid, name FROM archive WHERE userid = ${message.author.id}`, (err, result) => {
-        //               if (result[0].username != message.member.displayName) {
-        //                 con.query(`UPDATE archive SET name = ? WHERE userid = ${message.author.id}`, [message.member.displayName]);
-        //               }
-        //             });
-        //             var modIds = message.guild.roles.get('376873845333950477').members.map(m => {return m.id});
-        //             var managersIDs = message.guild.roles.get('337016459429412865').members.map(m => {return m.id});
-        //             if (!(modIds.includes(message.author.id))) {
-        //               if (!(managersIDs.includes(message.author.id))) {
-        //                 con.query(`SELECT userid, username FROM weeklypoints WHERE userid = ${message.author.id}`, (err, result) => {
-        //                   if (result[0].username != message.member.displayName) {
-        //                     con.query(`UPDATE member_data SET nickname = ? WHERE userid = ${message.author.id}`, [message.member.displayName]);
-        //                   }
-        //                 });
-        //               }
-        //             }
-        //           }, 500);
-        //         })
-        //         con.query(`UPDATE member_data SET level = level + 1 WHERE userid = ${message.author.id}`);
-        //         console.log(`${message.author} Levelled up`);
-        //         logger('info' , message.author, `${message.author.tag} has leveled up`);
-        //         if (message.channel.id !== bot.channels.serious) {
-        //           con.query(`SELECT * FROM member_data WHERE userid = ${message.author.id}`, (err4, pointsResult) => {
-        //             message.channel.send(`You are now level ${pointsResult[0].level}, ${message.author}`);
-        //           });
-        //         }
-        //       }
-        //     }
-        //   });
-        // }
+        if (message.content.length > 8) {
+          const pointsRandom = (Math.floor(Math.random() * 18) + 5)
+          const WpointsRandom = (Math.floor(Math.random() * 22) + 9)
+          const pointsJSON = { 'points':`${pointsRandom + dbData['points']}`, 'totalpoints':`${pointsRandom + dbData['totalpoints']}` };
+          const wkyPointsJSON = { 'points':`${WpointsRandom + dbData['wkypoints']}`, 'totalpoints':`${WpointsRandom + dbData['wkytotalpoints']}` };
+
+          if (dbData['level'] * 100 <= pointsJSON.points) {
+            const rounedTotal = Math.round(pointsJSON.totalpoints/100) * 100
+            const queries = [
+              { query: `UPDATE  member_data SET level = ${dbData['level'] + 1} WHERE id = ${dbData['id']}` },
+              { query: `UPDATE  member_data SET points = 0 WHERE id = ${dbData['id']}` },
+              { query: `UPDATE  member_data SET totalpoints = ${rounedTotal} WHERE id = ${dbData['id']}` }
+            ];
+            consandra.batch(queries).then( console.log('Member Leveled Up') );
+            message.channel.send(`You are now level ${dbData['level'] + 1}, ${message.author}`);
+          } else {
+            const queries = [
+              { query: `UPDATE  member_data SET points = ${pointsJSON.points} WHERE id = ${dbData['id']}` },
+              { query: `UPDATE  member_data SET totalpoints = ${pointsJSON.totalpoints} WHERE id = ${dbData['id']}` }
+            ];
+            consandra.batch(queries)
+          }
+          if (dbData['wkylevel'] * 100 <= wkyPointsJSON.points) {
+            const rounedTotal = Math.round(wkyPointsJSON.totalpoints/100) * 100
+            const queries = [
+              { query: `UPDATE  member_data SET wkylevel = ${dbData['wkylevel'] + 1} WHERE id = ${dbData['id']}` },
+              { query: `UPDATE  member_data SET wkypoints = 0 WHERE id = ${dbData['id']}` },
+              { query: `UPDATE  member_data SET wkytotalpoints = ${rounedTotal} WHERE id = ${dbData['id']}` }
+            ];
+            consandra.batch(queries).then(console.log('[weekly] Member Leveled Up'));
+          } else {
+            const queries = [
+              { query: `UPDATE  member_data SET wkypoints = ${wkyPointsJSON.points} WHERE id = ${dbData['id']}` },
+              { query: `UPDATE  member_data SET wkytotalpoints = ${wkyPointsJSON.totalpoints} WHERE id = ${dbData['id']}` }
+            ];
+            consandra.batch(queries)
+          }
+        }
 
         // Adds server metadata to the table, server stats can be shown with this data
         // need to add points gained when points is back
@@ -469,36 +451,7 @@ client.on('message', message => {
           // ESlint
         } else if (message.member.roles.has(bot.role.modsid)) {
           // ESlint
-        } /* else if (message.content.length > 2) {
-          const pointsRandom = (Math.floor(Math.random() * 22) + 9);
-
-          consandra.execute(`SELECT * FROM weeklypoints WHERE userid = ${message.author.id}`, (err, result) => {
-            const row = result.first();
-            if (row != null) {
-              con.query(`UPDATE weeklypoints SET points = points + ${pointsRandom} WHERE userid = ${message.author.id}`);
-              con.query(`UPDATE weeklypoints SET totalpoints = totalpoints + ${pointsRandom} WHERE userid = ${message.author.id}`);
-              if (result[0].level * 100 < result[0].points) {
-                con.query(`UPDATE weeklypoints SET points = 0 WHERE userid = ${message.author.id}`);
-                con.query(`SELECT totalpoints FROM weeklypoints WHERE userid = ${message.author.id}`, (err4, totalPointsResult) => {
-                  const resultJsonObjTotalPoints = JSON.stringify(totalPointsResult);
-                  const totalPointsSlice = resultJsonObjTotalPoints.slice(16, -4);
-                  const totalpoints = totalPointsSlice.concat('00');
-                  con.query(`UPDATE weeklypoints SET totalpoints = ${totalpoints} WHERE userid = ${message.author.id}`);
-                });
-                con.query(`UPDATE weeklypoints SET level = level + 1 WHERE userid = ${message.author.id}`);
-              }
-            } else {
-              const newUser = [
-                [`${message.author.id}`, `${message.member.displayName}`, 1, 0, 0],
-              ];
-              con.query('INSERT INTO weeklypoints (`userid`,`username`, `level`, `points`, `totalpoints`) VALUES ?', [newUser], err3 => {
-                if (err3) throw err3;
-                console.log(`${message.author} is now in this weeks, weeklypoints`);
-              });
-            }
-          });
         }
-        */
         // removes or bans ads messages and bots
         if (message.channel.name !== 'suggested-servers') {
           if (message.content.match('discord.gg/')) {
