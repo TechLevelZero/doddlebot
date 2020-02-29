@@ -1,0 +1,26 @@
+        // needs removeing
+        if (message.content.match('d!passcode')) {
+          if (dbData[0].passcode === '0') {
+            if (args[0].length === 4) {
+              const contentHashed = crypto.createHmac('sha256', config.key).update(args[0]).digest('hex');
+              consandra.execute(`UPDATE member_data SET passcode = '${contentHashed}' WHERE id = ${dbData['id']}`);
+              message.channel.send(`Passcode has been set to '||${args[0]}||' **Its strongey recomened you delete your passcode message** (this message will self destruct)`).then(msg => {
+                setTimeout(() => { msg.delete(1) }, 15000)
+              })
+            } else { message.channel.send('The passcode can only be 4 digits long') }
+          } else {
+            const contentHashed = crypto.createHmac('sha256', config.key).update(args[0]).digest('hex');
+            if (contentHashed === dbData[0].passcode) {
+              if(args[1] && args[0] === undefined) { message.channel.send('`d!passcode [old passcode] [new passcode]`') } else {
+                if (args[1].length === 4) {
+                  const contentHashedUpdated = crypto.createHmac('sha256', config.key).update(args[1]).digest('hex');
+                  con.query(`UPDATE member_data SET passcode = '${contentHashedUpdated}' WHERE userid = ${message.author.id}`);
+                  message.channel.send(`Passcode has been updated to ||'${args[1]}'|| **Its strongey recomened you delete your passcode message** (this message will self destruct)`).then(msg => {
+                    setTimeout(() => { msg.delete(1) }, 15000)
+                  })
+                } else { message.channel.send('The passcode can only be 4 digits long') }
+              }
+            } else { message.channel.send('passcode does not match') } // fight me,  like this style
+          }
+        }
+        //////////////////
