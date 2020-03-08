@@ -1,0 +1,60 @@
+        if (!message.member.roles.has(bot.role.memberid)) {
+          function autoMember() {
+            const cont = message.cleanContent.toLowerCase();
+            con.query(`SELECT * FROM member_data WHERE userid = ${message.author.id}`, (err2, result) => {
+              if (result.length > 0) {
+                for (var word in bot.lookup) {
+                  if (cont.indexOf(word) != -1) {
+                    if (bot.lookup[word] < 0) {
+                      console.log(bot.lookup[word]*-1)
+                      con.query('UPDATE member_data SET score = score - ' + (bot.lookup[word]*-1) + ' WHERE userid = ' + message.author.id);
+                    } else {
+                      console.log(bot.lookup[word]*-1 + ' in else')
+                      con.query('UPDATE member_data SET score = score + ' + bot.lookup[word] + ' WHERE userid = ' + message.author.id);
+                    }
+                  }
+                }
+                if (result[0].score !== -3000000) {
+                  if (count > 14) {
+                    con.query(`UPDATE member_data SET score = score * 3 WHERE userid = ${message.author.id}`);
+                  }
+                  con.query(`UPDATE member_data SET score = score + ${count} WHERE userid = ${message.author.id}`);
+                  con.query(`UPDATE member_data SET score = score / 4 WHERE userid = ${message.author.id}`);
+                  con.query(`SELECT score FROM member_data WHERE userid = ${message.author.id}`, (err, result) => {
+                    if (result[0].score >= 1000) {
+                      // Automatically adding
+                      const addedRoles = [];
+                      for (const roleMeme in bot.newRoles) {
+                        if (cont.indexOf(roleMeme) !== -1) {
+                          role('add', message, bot.role[roleMeme.replace('/','')+'id'])
+                          addedRoles.push(roleMeme);
+                        }
+                      }
+                      if (addedRoles.length > 0) {
+                        message.channel.send(`Added ${addedRoles.join(', ')} role(s) since it looks like you want them.`);
+                      }
+                      console.log('final score over 1000')
+                      const contentHashed = crypto.createHmac('sha512', config.key).update(cont).digest('hex');
+                      con.query('SELECT hash FROM member_data', (err, result19) => {
+                        const resultJson1 = JSON.stringify(result19);
+                        if (resultJson1.match(contentHashed)) {
+                          con.query(`UPDATE member_data SET score = - 3000000 WHERE userid = ${message.author.id}`);
+                          channel('themods').send(`${message.author.tag} copied a intro word for word, keep an eye on them!`);
+                        } else {
+                          con.query(`UPDATE member_data SET hash = '${contentHashed}' WHERE userid = ${message.author.id}`);
+                          // con.query(`UPDATE member_data SET wasmember = 1 WHERE userid = ${message.author.id}`);
+                          role('add', message, bot.role.memberid);
+                          logger('info' , message.author, `${message.author.tag} had been added by doddlebot'`);
+
+                          message.channel.send('Your intro was so good I was able to tell!, I have added you as a member. Welcome to doddlecord! Score: ' + result[0].score);
+                          console.log(`${message.author.tag} has been added by doddlebot`);
+                        }
+                      });
+                    }
+                  });
+                }
+              }
+            });
+          }
+
+        }

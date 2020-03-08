@@ -6,12 +6,13 @@
   "dependencies": {
     "ascii-table": "^0.0.9",
     "bufferutil": "^4.0.1",
+    "cassandra-driver": "^4.4.0",
     "cron": "^1.8.1",
     "discord.js": "^11.4.2",
     "external-ip": "^2.1.1",
     "moment-timezone": "^0.5.23",
     "mysql": "^2.17.1",
-    "pdfkit": "^0.9.0",
+    "pdfkit": "^0.9.1",
     "upsidedown": "^0.0.5"
   },
   "devDependencies": {},
