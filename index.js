@@ -1,14 +1,14 @@
 
 // doddlebot 1.3 WiP author: Ben Hunter
 
-const { Client, MessageEmbed } = require('discord.js');
+const Client = require('discord.js');
 const crypto = require('crypto');
 const config = require('./json_files/config.json');
 const bot = require('./json_files/data.json');
 const cassandra = require('cassandra-driver');
 // const Uuid = require('cassandra-driver').types.Uuid;
 // const mysql = require('mysql');
-const { execFile } = require('child_process')//.spawn;
+const { spawn } = require('child_process')//.spawn;
 const upsidedown = require('upsidedown');
 var moment = require('moment-timezone');
 const compare = require('js-levenshtein'); // to be used for intro comparions
@@ -22,14 +22,6 @@ console.log(Client)
 
 let globalPlsWork;
 
-// SQL config
-// const dbConfig = {
-//   host: 'localhost',
-//   user: 'admin',
-//   password: config.dbpass,
-//   database: 'doddlebot',
-//   charset: 'utf8mb4',
-// };
 // Cassandra config
 const consandra = new cassandra.Client({
   contactPoints: ['localhost'],
@@ -41,27 +33,6 @@ const consandra = new cassandra.Client({
 ///  Function land  ///
 ///////////////////////
 
-// SQL connection handleing
-// let con;
-// function handleDisconnect() {
-//   con = mysql.createConnection(dbConfig);
-//   con.connect(err => {
-//     if (err) {
-//       console.log('error when connecting to db:', err);
-//       console.log('DATABASE = doddlebot');
-//       setTimeout(handleDisconnect, 2000);
-//     }
-//   });
-//   con.on('error', err => {
-//     console.log('db error', err);
-//     if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-//       handleDisconnect();
-//     } else {
-//       throw err;
-//     }
-//   });
-// }
-// Points data w/o mod or managers data,
 /**
  * Gets the top x users, excluding mods
  * @param  {Object} message - A discord.js message object
@@ -70,37 +41,51 @@ const consandra = new cassandra.Client({
  * @returns {Object} - A discord.js embed with the top x members
  */
 function topx(message, x, mode, callback) {
-  var queery = ''; // geddit? It's because we're all gay.
-  var title = '';
 
-  // Gets mods and managers
-  var modIds = message.guild.roles.get('376873845333950477').members.map(m => {return m.id});
-  var managersIDs = message.guild.roles.get('337016459429412865').members.map(m => {return m.id});
-  var toRequest = (modIds.length + managersIDs.length) + Number(x);
+  let queery = ''; // geddit? It's because we're all gay.
+  let title = '';
 
   if (mode == 'total') {
-    queery = `SELECT userid, nickname, level, points, totalpoints FROM member_data ORDER BY totalpoints DESC LIMIT ${toRequest}`;
+    queery = 'SELECT userid, nickname, level, points, totalpoints FROM member_data';
     title = `doddlecord's top ${x} of all time`;
   } else if (mode == 'weekly') {
-    queery = `SELECT userid, username, level, points, totalpoints FROM weeklypoints ORDER BY totalpoints DESC LIMIT ${toRequest}`;
+    queery = 'SELECT userid, nickname, wkylevel, wkypoints, wkytotalpoints FROM member_data';
     title = `doddlecord's top ${x} this week`;
   }
 
   consandra.execute(queery, {prepare: true},(err, result) => {
-    const row = result.first();
     var topxArray = [];
 
-    for (var i = 0; i < result.rows.length; i++) {
-      if (!(modIds.includes(row['userid']))) { // If the user isn't a mod
-        if (!(managersIDs.includes(row['userid']))) { // If the user isn't a manager
-          if (topxArray.length < x) { // If the top x still has room
-            topxArray.push(result[i]);
-          }
-        }
-      }
+    for (let i = 0; i < result.rowLength; i++) {
+      if (mode == 'total') topxArray.push({userid:`${result.rows[i].userid}`, nickname:`${result.rows[i].nickname}`, level:`${result.rows[i].level}`, points:`${result.rows[i].points}`, totalpoints:`${result.rows[i].totalpoints}`})
+      if (mode == 'weekly') topxArray.push({userid:`${result.rows[i].userid}`, nickname:`${result.rows[i].nickname}`, level:`${result.rows[i].wkylevel}`, points:`${result.rows[i].wkypoints}`, totalpoints:`${result.rows[i].wkytotalpoints}`})
     }
+
+    (function(){
+      if (typeof Object.defineProperty === 'function'){
+        try{Object.defineProperty(Array.prototype,'sortBy',{value:sortDBdata}); }catch(e){}
+      }
+      if (!Array.prototype.sortBy) Array.prototype.sortBy = sortDBdata;
+      
+      function sortDBdata(f){
+        for (var i=this.length;i;){
+          var o = this[--i];
+          this[i] = [].concat(f.call(o,o,i),o);
+        }
+        this.sort(function(a,b){
+          for (var i=0,len=a.length;i<len;++i){
+            if (a[i]!=b[i]) return a[i]<b[i]?-1:1;
+          } return 0;
+        });
+        for (var i=this.length;i;){
+          this[--i]=this[i][this[i].length-1];
+        } return this;
+      }
+    })();
+
+    globalPlsWork = topxArray.sortBy(function(o){ return  -o.totalpoints })
+
     console.log('Sorted (Excluding mods) limited to x length', topxArray);
-    globalPlsWork = topxArray;
     callback();
   });
 }
@@ -138,7 +123,7 @@ function topx(message, x, mode, callback) {
  * @returns {Object} - A channel object
  */
 function channel(channel) {
-  return client.channels.get(bot.channels[channel])
+  return client.channels.cache.get(bot.channels[channel]) // cache?
 }
 // adds or removes roles
 /**
@@ -148,17 +133,17 @@ function channel(channel) {
  * @param  {Object} role - role id
  */
 function role(AOR, message, role) {
-  message.guild.members.get(message.author.id).roles[AOR](role);
+  message.guild.members.cache.get(message.author.id).roles[AOR](role);
 }
 /**
  * MemberSQL function
  * @param  {string} memberID - Members's discord ID
  */
 function memberData(userID, displayName, roles) {
-  consandra.execute('INSERT INTO member_data (id,userid,nickname,level,points,totalpoints,score,roles) VALUES (uuid, ?, ?, ?, ?, ?, ?, ?)', [userID, displayName, 1, 0, 0, 0, roles], { prepare: true }, err => {
+  consandra.execute('INSERT INTO member_data (userid,nickname,level,points,totalpoints,score,roles,wkylevel,wkypoints,wkytotalpoints) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [userID + 22, displayName, 1, 0, 0, 0, roles, 1, 0, 0], { prepare: true }, err => {
     if (err) {
       console.log(err)
-      client.channels.get('400762131252772866').send(`There was an error with ${displayName}'s (${userID}) data, doddlebot has recoved but the DB table may need checking`)
+      client.channels.cache.get('400762131252772866').send(`There was an error with ${displayName}'s (${userID}) data, doddlebot has recoved but the DB table may need checking`)
     }
     console.log('New Member Data Added To The Table');
   });
@@ -181,21 +166,9 @@ function logger(type, member, data) {
   });
 }
 
-function discordMD(message) {
-  const user = message.author.id
-  message.client.guilds.get('337013993669656586').members.fetch({ user, cache: false }).then(memberData => {
-    var memberDataString = JSON.stringify(memberData)
-    var memberArray = JSON.parse(memberDataString)
-    return memberArray
-  })
-}
-
-// handleDisconnect();
-
 consandra.connect();
-const Uuid = cassandra.types.Uuid
 
-const client = new Client();
+const client = new Client.Client();
 
 // Discord login, looks to see if in DEV or STABLE branch
 if (__dirname.match('STABLE')) {
@@ -225,37 +198,37 @@ client.on('debug', e => {
 
 // Loads logs and sets activity
 client.on('ready', () => {
-  console.log(client.guilds.get('337013993669656586').members.filter(m => {return m.presence.status === 'online'}).size);
+  // console.log(client.guilds.cache.get('337013993669656586').members.filter(m => {return m.presence.status === 'online'}).size);
   client.user.setActivity('With doddleolphin', { type: 'PLAYING' });
   console.log(`Logged in as ${client.user.username} ${bot.system.ver}`);
 
   const job = new CronJob('0 12 * * 0', function() {
-    const serverChannels = client.guilds.get('337013993669656586').channels;
+    const serverChannels = client.guilds.cache.get('337013993669656586').channels.cache;
     const Channel = serverChannels.get(bot.channels.general);
     Channel.messages.fetch(Channel.lastMessageID).then(message => {
-      client.guilds.get('337013993669656586').members.prune({
+      client.guilds.cache.get('337013993669656586').members.prune({
         days: 7, reason: 'members have not introduced them selfs within and have been offline for 7 days'
       }).then(prune => {
         logger('system', client.user, `This week, ${prune} members have been removed`);
-        serverChannels.get(bot.channels.testfacility).send(`this week, ${prune} members have been removed`)
+        serverChannels.get(bot.channels.testfacility).send(`The prune this week resuted in ${prune} members being removed`)
       })
 
       topx(message, 5, 'weekly', () => {
-        const embed = new MessageEmbed()
+        const embed = new Client.MessageEmbed()
         embed.setColor(0xFEF65B)
         embed.setTitle('doddlecord\'s Top 5 of this week')
-        for (var j = 0; j < globalPlsWork.length; j++) {
-          embed.addField(`#${j+1}: ${globalPlsWork[j].username}`, `At level **${globalPlsWork[j].level}** with **${globalPlsWork[j].points}** points`);
+        for (var j = 0; j < 5; j++) {
+          embed.addField(`#${j+1}: ${globalPlsWork[j].nickname}`, `At level **${globalPlsWork[j].level}** with **${globalPlsWork[j].points}** points`);
         }
-        const top5remove = message.guild.roles.get(bot.role.top5).members.map(m=>{return m.user});
+        const top5remove = message.guild.roles.cache.get(bot.role.top5).members.map(m=>{return m.user});
         setTimeout(() => {
           for (var k = 0; k < top5remove.length; k++) {
-            message.guild.members.get(top5remove[k].id).roles['remove'](bot.role.top5);
+            // need to fix cache issues 
+            message.guild.members.cache.get(top5remove[k].id).roles['remove'](bot.role.top5);
           }
-          console.log(top5remove + 'the 5 removed')
         }, 1000);
         serverChannels.get(bot.channels.themods).send({ embed });
-        serverChannels.get(bot.channels.themods).send('@everyone, does this look ok? Is it sunday? If everything is ok, use d!send to publish')
+        serverChannels.get(bot.channels.themods).send('@everyone, does this look ok? Is it sunday? If everything is ok, use `d!send` to publish')
       });
     })
   });
@@ -271,11 +244,11 @@ client.on('guildMemberAdd', member => {
   if (__dirname.match('STABLE')) {
     const message = member
     function roleAM2(AOR, message, role) {
-      message.guild.members.get(message.id).roles[AOR](role);
+      message.guild.members.cache.get(message.id).roles[AOR](role);
     }
     function welcomeEmbed() {
-      channel('introduceyourself').send(`${member.guild.members.get(member.id)}`);
-      const embed = new MessageEmbed()
+      channel('introduceyourself').send(`${member.guild.members.cache.get(member.id)}`);
+      const embed = new Client.MessageEmbed()
         .setColor(0xFEF65B)
         .setTitle('**Welcome to doddlecord!**')
         .setImage('https://cdn.discordapp.com/attachments/401431353482280960/401486447414345740/dodie_welcome1.png')
@@ -290,7 +263,7 @@ client.on('guildMemberAdd', member => {
       const row = result.first();
       if (row != null) {
         if (row['score'] > 1000) {
-          channel('introduceyourself').send(`Hey ${member.guild.members.get(member.id)} welcome back! Looks like you where a member`);
+          channel('introduceyourself').send(`Hey ${member.guild.members.cache.get(member.id)} welcome back! Looks like you where a member`);
           roleAM2('add', member, bot.role.memberid);
         } else {
           welcomeEmbed()
@@ -314,14 +287,19 @@ client.on('message', message => {
   var memberPromise = new Promise(function(resolve, reject) {
     consandra.execute(`SELECT * FROM member_data WHERE userid = '${message.author.id}'`, (err4, dbData) => {
       if (justJoined === true) return;
+      console.log(dbData)
       const row = dbData.first();
       if (row === null) {
         const user = message.author.id
-        message.client.guilds.get('337013993669656586').members.fetch({ user, cache: false }).then(memberDataDB => {
-          var memberDataString = JSON.stringify(memberDataDB)
-          var memberArray = JSON.parse(memberDataString)
-          memberData(message.author.id, memberArray.displayName, memberArray.roles)
-          setTimeout(() => { resolve(true) }, 100);
+        message.client.guilds.cache.get('337013993669656586').members.fetch({ user, cache: false }).then(memberDataDB => {
+          consandra.execute('INSERT INTO member_data (userid,nickname,level,points,totalpoints,score,roles,wkylevel,wkypoints,wkytotalpoints) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [message.author.id, memberDataDB.displayName, 1, 0, 0, 0, memberDataDB._roles.toString(), 1, 0, 0], { prepare: true }, err => {
+            if (err) {
+              console.log(err)
+              client.channels.cache.get('400762131252772866').send(`There was an error with ${displayName}'s (${userID}) data, doddlebot has recoved but the DB table may need checking`)
+            }
+            console.log('New Member Data Added To The Table');
+          });
+          reject(true)
         })
       } else {
         resolve(true)
@@ -337,7 +315,7 @@ client.on('message', message => {
       const command = args.shift().toLowerCase();
       message.content = message.content.toLowerCase();
       if (message.content === 'd!kill') {
-        if (message.member.roles.has(bot.role.managersjoshesid) || (message.author.id === '394424134337167360')) {
+        if (message.member.roles.cache.has(bot.role.managersjoshesid) || (message.author.id === '394424134337167360')) {
           logger('system' , message.author, `${message.author.tag} Had shutdown doddlebot')`);
           process.exit();
         }
@@ -361,11 +339,11 @@ client.on('message', message => {
       }
 
       if (message.channel.type === 'dm') {
-        /*
+        
         if (command === 'data') {
           if ( parseInt(dbData['dataepoch']) < (Date.now() - 6.048e+8)) {
             consandra.execute(`UPDATE member_data SET dataepoch = '${Date.now()}' WHERE id = ${dbData['id']}`);
-            const joinDateArray = `${message.client.guilds.get('337013993669656586').members.get(message.author.id).joinedAt}`.trim().split(/ +/g);
+            const joinDateArray = `${message.client.guilds.cache.get('337013993669656586').members.cache.get(message.author.id).joinedAt}`.trim().split(/ +/g);
             const joinDateText = `\nYou_joined_on_${joinDateArray[0]}_${joinDateArray[1]}_${joinDateArray[2]}_${joinDateArray[3]}_at_${joinDateArray[4]}`
             logger('info', message.author, 'had requested their data')
             const dateOfPDF = new Date(parseInt(dbData['dataepoch']))
@@ -375,7 +353,9 @@ client.on('message', message => {
               message.channel.send(' You can only do this once a week, The next time you can request your PDF is after ' + nextDate.toUTCString())
             }, 1500)
             console.log(args[0])
-            var cp = execFile('node', ['data', message.author.id, message.author.tag, joinDateText], {cwd:'./tools/'}, (error, stdout, stderr) => {
+            // const data = fork('./tools/data.js', [message.author.id, message.author.tag, joinDateText])
+            // data.send('start')
+            var cp = spawn('node', ['data', message.author.id, message.author.tag, joinDateText], {cwd:'./tools/'}, (error, stdout, stderr) => {
               if (error) {
                 throw error;
               }
@@ -396,7 +376,7 @@ client.on('message', message => {
             });
           }
         }
-        */
+        
       }
       if (message.channel.type === 'dm') return;
       if (message.content.length > 8) {
@@ -408,49 +388,53 @@ client.on('message', message => {
         if (dbData['level'] * 100 <= pointsJSON.points) {
           const rounedTotal = Math.round(pointsJSON.totalpoints/100) * 100
           const queries = [
-            { query: `UPDATE  member_data SET level = ${dbData['level'] + 1} WHERE id = ${dbData['id']}` },
-            { query: `UPDATE  member_data SET points = 0 WHERE id = ${dbData['id']}` },
-            { query: `UPDATE  member_data SET totalpoints = ${rounedTotal} WHERE id = ${dbData['id']}` }
+            { query: `UPDATE  member_data SET level = ${dbData['level'] + 1} WHERE userid = '${dbData['userid']}'` },
+            { query: `UPDATE  member_data SET points = 0 WHERE userid = '${dbData['userid']}'` },
+            { query: `UPDATE  member_data SET totalpoints = ${rounedTotal} WHERE userid = '${dbData['userid']}'` }
           ];
           consandra.batch(queries).then( console.log('Member Leveled Up') );
           message.channel.send(`You are now level ${dbData['level'] + 1}, ${message.author}`);
         } else {
           const queries = [
-            { query: `UPDATE  member_data SET points = ${pointsJSON.points} WHERE id = ${dbData['id']}` },
-            { query: `UPDATE  member_data SET totalpoints = ${pointsJSON.totalpoints} WHERE id = ${dbData['id']}` }
+            { query: `UPDATE  member_data SET points = ${pointsJSON.points} WHERE userid = '${dbData['userid']}'` },
+            { query: `UPDATE  member_data SET totalpoints = ${pointsJSON.totalpoints} WHERE userid = '${dbData['userid']}'` }
           ];
           consandra.batch(queries)
         }
         if (dbData['wkylevel'] * 100 <= wkyPointsJSON.points) {
           const rounedTotal = Math.round(wkyPointsJSON.totalpoints/100) * 100
           const queries = [
-            { query: `UPDATE  member_data SET wkylevel = ${dbData['wkylevel'] + 1} WHERE id = ${dbData['id']}` },
-            { query: `UPDATE  member_data SET wkypoints = 0 WHERE id = ${dbData['id']}` },
-            { query: `UPDATE  member_data SET wkytotalpoints = ${rounedTotal} WHERE id = ${dbData['id']}` }
+            { query: `UPDATE  member_data SET wkylevel = ${dbData['wkylevel'] + 1} WHERE userid = '${dbData['userid']}'` },
+            { query: `UPDATE  member_data SET wkypoints = 0 WHERE userid = '${dbData['userid']}'` },
+            { query: `UPDATE  member_data SET wkytotalpoints = ${rounedTotal} WHERE userid = '${dbData['userid']}'` }
           ];
           consandra.batch(queries).then(console.log('[weekly] Member Leveled Up'));
         } else {
           const queries = [
-            { query: `UPDATE  member_data SET wkypoints = ${wkyPointsJSON.points} WHERE id = ${dbData['id']}` },
-            { query: `UPDATE  member_data SET wkytotalpoints = ${wkyPointsJSON.totalpoints} WHERE id = ${dbData['id']}` }
+            { query: `UPDATE  member_data SET wkypoints = ${wkyPointsJSON.points} WHERE userid = '${dbData['userid']}'` },
+            { query: `UPDATE  member_data SET wkytotalpoints = ${wkyPointsJSON.totalpoints} WHERE userid = '${dbData['userid']}'` }
           ];
-          consandra.batch(queries)
+          consandra.batch(queries, { })
+          .then(function() {
+            // All queries have been executed successfully
+          })
+          .catch(function(err) {
+            console.log(err)
+            // None of the changes have been applied
+          });
         }
       }
 
       // Adds server metadata to the table, server stats can be shown with this data
       // need to add points gained when points is back
-      consandra.execute('INSERT INTO message_metadata (id,userid,username,channel,channelid,date,wordcount,pointscount) VALUES (uuid(),?,?,?,?,?,?,?)', [message.author.id, message.member.displayName, message.channel.name, message.channel.id, Date.now(), count, 0], { prepare: true }, err3 => {
-        if (err3) throw err3;
+      consandra.execute('INSERT INTO message_metadata (id,userid,username,channel,channelid,date,wordcount,pointscount) VALUES (uuid(),?,?,?,?,?,?,?)', [message.author.id, message.member.displayName, message.channel.name, message.channel.id, Date.now(), count, 0], { prepare: true }, err => {
+        if (err) throw err;
         console.log('Message Metadata Archived');
       });
         
-      // con.query(`UPDATE archive SET messagecount = messagecount + ${count} WHERE id = 0`);
-
-      // needs sorting 
-      if (message.member.roles.has(bot.role.managersjoshesid)) {
+      if (message.member.roles.cache.get(bot.role.managersjoshesid)) {
         // ESlint
-      } else if (message.member.roles.has(bot.role.modsid)) {
+      } else if (message.member.roles.cache.get(bot.role.modsid)) {
         // ESlint
       }
       // removes or bans ads messages and bots
@@ -463,7 +447,7 @@ client.on('message', message => {
         message.member.kick(message.author.id);
       }
 
-      if (!message.member.roles.has(bot.role.memberid)) {
+      if (!message.member.roles.cache.get(bot.role.memberid)) {
         let score = []
         const cont = message.cleanContent.toLowerCase();
         function autoMember() {
@@ -497,7 +481,6 @@ client.on('message', message => {
       }
 
       // update nickname in table
-      // const displayName = message.client.guilds.get('337013993669656586').members.get(message.author.id).displayName
       if (dbData['nickname'] != message.member.displayName) {
         consandra.execute(`UPDATE member_data SET nickname = ? WHERE id = ${dbData['id']}`, [message.member.displayName], err3 => {
           if (err3) throw err3;
@@ -506,6 +489,9 @@ client.on('message', message => {
       }
 
       if (message.content.indexOf(config.prefix) !== 0) return;
+      if (!message.member.roles.cache.has(bot.role.memberid)) {
+        message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
+      }
 
       // colour stuff
       if (command === 'colour') {
@@ -522,7 +508,7 @@ client.on('message', message => {
         var colours = ['lime', 'rose', 'bluesky', 'lightviolet', 'aqua', 'yellow'];
         for (let i = 0; i < colours.length; i++) {
           if (colour === colours[i]) {
-            if (message.member.roles.has(bot.role[colours[i].concat('id')])) {
+            if (message.member.roles.cache.has(bot.role[colours[i].concat('id')])) {
               message.reply(`you have already have ${colours[i]}`);
             } else {
               removeColours();
@@ -543,79 +529,73 @@ client.on('message', message => {
 
       // personality stuff
       if (command === 'roles') {
-        if (message.member.roles.has(bot.role.memberid)) {
-          const per0 = args[0];
-          const per1 = args[1];
-          const peradded1 = [args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10]];
-          const embed = new MessageEmbed();
-          const changed = [];
-          let state = 'NA';
-          embed.setColor(0xFEF65B);
+        const per0 = args[0];
+        const per1 = args[1];
+        const peradded1 = [args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10]];
+        const embed = new Client.MessageEmbed();
+        const changed = [];
+        let state = 'NA';
+        embed.setColor(0xFEF65B);
+        if (per0 === 'remove') {
+          embed.setTitle('Roles removed:');
+          state = 'removed';
+        } else {
+          embed.setTitle('Roles added:');
+          state = 'added';
+          peradded1.unshift('added');
+        }
+        if (per1 === 'all') {
           if (per0 === 'remove') {
-            embed.setTitle('Roles removed:');
-            state = 'removed';
-          } else {
-            embed.setTitle('Roles added:');
-            state = 'added';
-            peradded1.unshift('added');
-          }
-          if (per1 === 'all') {
-            if (per0 === 'remove') {
-              const toRemove = ['gay', 'straight', 'bisexual', 'asexual', 'pansexual', 'female', 'male', 'lesbian', 'non binary', 'fluid', 'agender', 'hehim', 'sheher', 'theythem', 'trans', 'homoromantic', 'hetroromantic', 'biromantic', 'aromantic', 'panromantic'];
-              for (let i = 0; i < toRemove.length; i++) {
-                role('remove', message, bot.role[toRemove[i].concat('id')]);
-              }
-              message.reply('All personal roles have been removed');
+            const toRemove = ['gay', 'straight', 'bisexual', 'asexual', 'pansexual', 'female', 'male', 'lesbian', 'non binary', 'fluid', 'agender', 'hehim', 'sheher', 'theythem', 'trans', 'homoromantic', 'hetroromantic', 'biromantic', 'aromantic', 'panromantic'];
+            for (let i = 0; i < toRemove.length; i++) {
+              role('remove', message, bot.role[toRemove[i].concat('id')]);
             }
-          } else {
-            let mark = false;
-            for (key in bot.newRoles) {
-              // It's running for every one found
-              if (peradded1.indexOf(key) != -1) {
-                mark = true;
-                changed.push(key);
-                // Set role
-                if (per0 === 'remove') {
-                  role('remove', message, bot.role[bot.newRoles[key]]);
-                } else {
-                  role('add', message, bot.role[bot.newRoles[key]]);
-                  embed.setDescription(key);
-                }
-              }
-            }
-            // r/OutOfTheLoop
-            if (!mark) {
-              message.channel.send(`${message.author} example: d!pers gay male memedealer [For help type d!persroles]`);
-            } else {
-              embed.setDescription(changed.join('\n'));
-              message.channel.send({ embed });
-              logger('info' , message.author, `${message.author.tag} has ${state} ${peradded1.slice(1)}`);
-            }
+            message.reply('All personal roles have been removed');
           }
         } else {
-          message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`));
-          console.log(`${message.author.tag} was trying to add a personality role, but is not a member`);
-          logger('info' , message.author, `${message.author.tag} was trying to add a personality role, but is not a member`);
+          let mark = false;
+          for (key in bot.newRoles) {
+            // It's running for every one found
+            if (peradded1.indexOf(key) != -1) {
+              mark = true;
+              changed.push(key);
+              // Set role
+              if (per0 === 'remove') {
+                role('remove', message, bot.role[bot.newRoles[key]]);
+              } else {
+                role('add', message, bot.role[bot.newRoles[key]]);
+                embed.setDescription(key);
+              }
+            }
+          }
+          // r/OutOfTheLoop
+          if (!mark) {
+            message.channel.send(`${message.author} example: d!pers gay male memedealer [For help type d!persroles]`);
+          } else {
+            embed.setDescription(changed.join('\n'));
+            message.channel.send({ embed });
+            logger('info' , message.author, `${message.author.tag} has ${state} ${peradded1.slice(1)}`);
+          }
         }
       }
 
       // end of personality stuff
 
       if (command === 'serverinfo') {
-        const embed = new MessageEmbed()
+        const embed = new Client.MessageEmbed()
           .setColor(0xFEF65B)
           .setDescription(`**__${message.guild.name} Details__**`)
           .setThumbnail(message.guild.iconURL)
-          .addField('Members', `${message.guild.memberCount - message.guild.members.filter(member => {return member.user.bot}).size} Members`)
-          .addField('Bots', `${message.guild.members.filter(member => {return member.user.bot}).size} Bots`)
-          .addField('Channels', `${message.guild.channels.filter(chan => {return chan.type === 'voice'}).size} voice / ${message.guild.channels.filter(chan => {return chan.type === 'text'}).size - 6} text`)
-          .addField('Mods', message.guild.roles.get('376873845333950477').members.map(m => {return m.user}).join(', '))
-          .addField('Managers', message.guild.roles.get('337016459429412865').members.map(m => {return m.user}).join(', '));
+          .addField('Members', `${message.guild.memberCount - message.guild.members.cache.filter(member => {return member.user.bot}).size} Members`)
+          .addField('Bots', `${message.guild.members.cache.filter(member => {return member.user.bot}).size} Bots`)
+          .addField('Channels', `${message.guild.channels.cache.filter(chan => {return chan.type === 'voice'}).size} voice / ${message.guild.channels.cache.filter(chan => {return chan.type === 'text'}).size - 6} text`)
+          .addField('Mods', message.guild.roles.cache.get('376873845333950477').members.map(m => {return m.user}).join(', '))
+          .addField('Managers', message.guild.roles.cache.get('337016459429412865').members.map(m => {return m.user}).join(', '));
         message.channel.send({ embed });
       }
 
       if (command === 'colourhelp') {
-        const embed = new MessageEmbed()
+        const embed = new Client.MessageEmbed()
           .setColor(0xFEF65B)
           .setTitle('**Colour Role Help**')
           .setDescription('This is the command to add colour to your name in doddlecord!')
@@ -624,7 +604,7 @@ client.on('message', message => {
       }
 
       if (command === 'help') {
-        const embed = new MessageEmbed()
+        const embed = new Client.MessageEmbed()
           .setColor(0xFEF65B)
           .setTitle('**Help**')
           .setDescription('Looking for help? yes...well look below for the category you need help with!')
@@ -633,7 +613,7 @@ client.on('message', message => {
       }
 
       if (command === 'timehelp') {
-        const embed = new MessageEmbed()
+        const embed = new Client.MessageEmbed()
           .setColor(0xFEF65B)
           .setTitle('**Time help**')
           .setDescription(bot.commandLists.time)
@@ -641,7 +621,7 @@ client.on('message', message => {
       }
 
       if (command === 'roleshelp') {
-        const embed = new MessageEmbed()
+        const embed = new Client.MessageEmbed()
           .setColor(0xFEF65B)
           .setTitle('**Personal Role Help**')
           .setDescription('Personal roles are added to give a little info on who you are to other members of doddlecord.\nThey are completely optional roles though. Make __shore__ you spell them correctly or it will not add them!')
@@ -651,12 +631,12 @@ client.on('message', message => {
           .addField('**Romantic Roles**', (bot.romanticRoles), true)
           .addField('**Pronun Roles**', (bot.pronunRoles), true)
           .addField('**Extra Roles**', (bot.extraRoles), true)
-          .addBlankField(true);
+          .addField('\u200B', '\u200B', true)
         message.channel.send({ embed });
       }
 
       if (command === 'extras') {
-        const embed = new MessageEmbed()
+        const embed = new Client.MessageEmbed()
           .setColor(0xFEF65B)
           .setTitle('**Extra Help**')
           .setDescription('Just some extra commands that doddlebot can do!\n\nCommands with * means the input is requied E.G: `d!top 10`')
@@ -665,7 +645,7 @@ client.on('message', message => {
       }
 
       if (command === 'ukhelplines') {
-        const embed = new MessageEmbed()
+        const embed = new Client.MessageEmbed()
           .setColor(0xFEF65B)
           .setTitle('UK Helplines')
           .setDescription(bot.text.uk);
@@ -673,7 +653,7 @@ client.on('message', message => {
       }
 
       if (command === 'ushelplines') {
-        const embed = new MessageEmbed()
+        const embed = new Client.MessageEmbed()
           .setColor(0xFEF65B)
           .setTitle('USA Helplines')
           .setDescription(bot.text.us);
@@ -681,8 +661,8 @@ client.on('message', message => {
       }
 
       if (command === 'ping') {
-        const ping = Math.round(client.ping);
-        console.log(client.ping)
+        const ping = Math.round(client.ws.ping);
+        console.log(client.ws.ping)
         message.channel.send(`Ping is ${ping}ms`);
         logger('system' , message.author, `Ping was ${ping}ms`);
       }
@@ -690,42 +670,33 @@ client.on('message', message => {
       if (message.channel.name === 'secrets-for-the-mods') {
         if (command === 'send') {
           topx(message, 5, 'weekly', () => {
-            const embed = new MessageEmbed()
+            const embed = new Client.MessageEmbed()
             embed.setColor(0xFEF65B)
             embed.setTitle('doddlecord\'s Top 5 of this week')
-            for (var j = 0; j < globalPlsWork.length; j++) {
+            for (var j = 0; j < 5; j++) {
               embed.addField(`#${j+1}: ${globalPlsWork[j].username}`, `At level **${globalPlsWork[j].level}** with **${globalPlsWork[j].points}** points`);
-              message.guild.members.get(globalPlsWork[j].userid).roles['add'](bot.role.top5);
+              message.guild.members.cache.get(globalPlsWork[j].userid).roles['add'](bot.role.top5);
             }
             channel('announcements').send({ embed });
           });
-          message.channel.send('30s till weeklypoints is TRUNCATED use `d!kill` to stop');
+          message.channel.send('30s till weeklypoints is RESET use `d!send stop` to stop');
           setTimeout(() => {
-            consandra.execute('TRUNCATE TABLE weeklypoints');
-            console.log('WEEKLYPOINTS TABLE HAS BEEN TRUNCATED');
-            logger('system' , message.author, 'WEEKLYPOINTS TABLE WAS TRUNCATED');
+            // need to find a way to set collum null and level too 1
+            // consandra.execute('UPDATE member_data SET wkylevel, wkypoints, wkytotalpoints WHERE `, [zoneconver], {prepare: true});
+            // consandra.execute('TRUNCATE TABLE weeklypoints');
+            // console.log('WEEKLYPOINTS TABLE HAS BEEN TRUNCATED');
+            // logger('system' , message.author, 'WEEKLYPOINTS TABLE WAS TRUNCATED');
           }, 30000)
         }
       }
 
-      if (message.channel.name === 'secrets-for-the-mods') {
-        if (command === 'updateembed') {
-          channel('announcements').send('@everyone');
-          const embed = new MessageEmbed()
-            .setColor(0xFEF65B)
-            .setTitle('doddlebot 1.3 The update (its finally done)')
-            .setDescription('1.3 is finally out and with it brings alot of new features you may have alrady used!\n\nHere is a list of the new ones!\n\n**Member Profiles**\nWith profiles you can see: Rank, Member stats, Roles, and More\n`Usage: d!profile to get your profile or @[member] to get there profile`\n\n**Time**\n`d!timehelp` to get more info.\n\n**RewindPDF**\n(You need to allow DMs from doddlebot) but with this you can get stats about your time on doddlecord in a nice PDF format.\nDM doddlebot `d!data` to get your PDF\n\n**Roles on intro**\nAs you have probably seen doddlebot now gives roles to new members if there intro has certan keywords in it.\n\n**Weekly top 5**\nIt finaly got automated, well kida... but thats for the mods to figure out. Expect the Weekly top 5 every Sunday just after 12pm GMT\n\n**Revoke Serious Access**\nYou can now remove serious chat access at your own will\n\n**Command Changes**\nIn this update some commands have changed. All the help menus have been updated to reflect this!')
-            .setFooter('bug fixes\nd!time would get stuck in a loop.     An issue was found with AutoMember2.0 and was turned back on with v2.0.1.     Level up message was sending into serious chat.     male role was not being added when requested.     A members most recent nickname/username was not being used.     RewindPDF was not spawning child process');
-          channel('announcements').send(embed);
-        }
-      }
       // Boo!
       if (command === 'rank') {
         if (args[0] != null) {
           consandra.execute(`SELECT * FROM member_data WHERE userid = '${message.mentions.users.first().id}'`, (err, result) => {
             const row = result.first();
             if (result[0] != null) {
-              const embed = new MessageEmbed()
+              const embed = new Client.MessageEmbed()
                 .setColor(0xFEF65B)
                 .setTitle(`Rank Of ${row['nickname']}`)
                 .addField('Level', (row['level']))
@@ -736,7 +707,7 @@ client.on('message', message => {
             } else { message.channel.send('can\'t find any points on this member. `d!rank` for your own rank or `d!rank @user` to get anothers users rank'); }
           });
         } else {
-          const embed = new MessageEmbed()
+          const embed = new Client.MessageEmbed()
             .setColor(0xFEF65B)
             .setTitle(`**Your Rank ${message.member.displayName}**`)
             .addField('**Level**', (dbData['level']))
@@ -758,13 +729,12 @@ client.on('message', message => {
 
         function arrayRole(roles) {
           for (var x = 0; x < roles.length; x++) {
-            if ((x + 1) != (roles.length - 1)) {
-              roleArray.push('<@&' + roles[x] + '>, ')
+            if ((x + 1) != (roles.length)) {
+              roleArray.push('<@&' + roles[x] + '> ')
             } else {
               roleArray.push('<@&' + roles[x] + '>')
             }
           }
-          roleArray.pop()
         }
         function count(result) {
           const row = result.first();
@@ -797,36 +767,36 @@ client.on('message', message => {
             }
             consandra.execute('SELECT * FROM message_metadata WHERE userid = ?', [mentionedUser.id], {prepare : true, fetchSize: 25000}, (err, archive) => {
               const row = result.first();
-              var timez = (row['timeOrLoc'] || 'Member has not set it yet');
-              var mentioned = (message.client.guilds.get('337013993669656586').members.get(mentionedUser.id))
-              const embed = new MessageEmbed()
+              var timez = (row['timeorloc'] || 'Member has not set it yet');
+              var mentioned = (message.client.guilds.cache.get('337013993669656586').members.cache.get(mentionedUser.id))
+              const embed = new Client.MessageEmbed()
                 .setColor(mentioned.displayHexColor)
                 .setTitle(`${mentioned.displayName}'s Profile`, true)
                 .setThumbnail(mentionedUser.displayAvatarURL())
                 .setDescription('Loading...')
               message.channel.send({ embed }).then(msg => {
                 count(archive)
-                arrayRole(mentioned.roles.map(role => {return role.id}))
+                arrayRole(mentioned._roles)
                   
-                const joinDateArray = `${message.client.guilds.get('337013993669656586').members.get(message.mentions.users.first().id).joinedAt}`.trim().split(/ +/g);
-                const embed = new MessageEmbed()
+                const joinDateArray = `${message.client.guilds.cache.get('337013993669656586').members.cache.get(message.mentions.users.first().id).joinedAt}`.trim().split(/ +/g);
+                const embed = new Client.MessageEmbed()
                   .setColor(mentioned.displayHexColor)
                   .setTitle(`${mentioned.displayName}'s Profile`, true)
                   .setThumbnail(mentionedUser.displayAvatarURL())
                   .addField('Rank', 'Level: ' + (row['level']) + '\nPoints: ' + (row['points']) + '\nNext Level In ' + ((row['level'] * 100) - row['points']) + ' Points' + `\nTotal points gained: ${row['totalpoints']}`, true)
                   .addField('Member Stats', `Messages: ${archive.rows.length}\nWord Count: ${wordCount}\nMost used channel: ${item}\nwith ${mf} messages`, true)
                   .addField('Time Zone', timez)
-                  .addBlankField()
+                  .addField('\u200B', '\u200B')
                   .addField('Roles', roleArray.join(''))
                   .setFooter(`Joined on ${joinDateArray[0]} ${joinDateArray[1]} ${joinDateArray[2]} ${joinDateArray[3]} at ${joinDateArray[4]}`);
                 message.channel.send({ embed });
-                msg.delete(1)
+                msg.delete({ timeout: 1, reason: 'bot removed'})
               })
             })
           })
         } else {
-          var timez = (dbData['timeOrLoc'] || 'You have not set a Time or location. Use d!timehelp to get started');
-          const embed = new MessageEmbed()
+          var timez = (dbData['timeorloc'] || 'You have not set a Time or location. Use d!timehelp to get started');
+          const embed = new Client.MessageEmbed()
             .setColor(message.member.displayHexColor)
             .setTitle(`Your Profile ${message.member.displayName}`, true)
             .setThumbnail(message.author.displayAvatarURL())
@@ -837,20 +807,20 @@ client.on('message', message => {
                 console.log(err)
               }
               count(archive)
-              arrayRole(message.member.roles.map(role => {return role.id}))
-              const joinDateArray = `${message.client.guilds.get('337013993669656586').members.get(message.author.id).joinedAt}`.trim().split(/ +/g);
-              const embed = new MessageEmbed()
+              arrayRole(message.member._roles)
+              const joinDateArray = `${message.client.guilds.cache.get('337013993669656586').members.cache.get(message.author.id).joinedAt}`.trim().split(/ +/g);
+              const embed = new Client.MessageEmbed()
                 .setColor(message.member.displayHexColor)
                 .setTitle(`Your Profile ${message.member.displayName}`, true)
                 .setThumbnail(message.author.displayAvatarURL())
                 .addField('Rank', 'Level: ' + (dbData['level']) + '\nPoints: ' + (dbData['points']) + '\nNext Level In ' + ((dbData['level'] * 100) - dbData['points']) + ' Points' + `\nTotal points gained: ${dbData['totalpoints']}`, true)
                 .addField('Member Stats', `Messages: ${archive.rows.length}\nWord Count: ${wordCount}\nMost used channel: ${item}\nwith ${mf} messages`, true)
                 .addField('Time Zone', timez)
-                .addBlankField()
+                .addField('\u200B', '\u200B')
                 .addField('Roles', roleArray.join(''))
                 .setFooter(`Joined on ${joinDateArray[0]} ${joinDateArray[1]} ${joinDateArray[2]} ${joinDateArray[3]} at ${joinDateArray[4]}`);
               message.channel.send({ embed });
-              msg.delete(1)
+              msg.delete({ timeout: 1, reason: 'bot removed'})
             })
           })
         }
@@ -858,12 +828,12 @@ client.on('message', message => {
 
       if (command === 'top') {
         const arg = parseInt(args[0]);
-        const embed = new MessageEmbed()
+        const embed = new Client.MessageEmbed()
         if (arg > 25) {
           topx(message, 25, 'total', () => {
             embed.setColor(0xFEF65B)
             embed.setFooter('Can not be larger then 25')
-            for (var j = 0; j < globalPlsWork.length; j++) {
+            for (var j = 0; j < 25; j++) {
               embed.addField(`#${j+1}: ${globalPlsWork[j].nickname}`, `At level **${globalPlsWork[j].level}** with **${globalPlsWork[j].points}** points`);
             }
             message.channel.send({ embed });
@@ -871,7 +841,7 @@ client.on('message', message => {
         } else if (Number.isInteger(arg)) {
           topx(message, arg, 'total', () => {
             embed.setColor(0xFEF65B)
-            for (var j = 0; j < globalPlsWork.length; j++) {
+            for (var j = 0; j < arg; j++) {
               embed.addField(`#${j+1}: ${globalPlsWork[j].nickname}`, `At level **${globalPlsWork[j].level}** with **${globalPlsWork[j].points}** points`);
             }
             message.channel.send({ embed });
@@ -883,45 +853,46 @@ client.on('message', message => {
 
       if (command === 'serious') {
         const user = message.author.id
-        message.client.guilds.get('337013993669656586').members.fetch({ user, cache: false }).then(memberData => {
-          var memberDataString = JSON.stringify(memberData)
-          var memberArray = JSON.parse(memberDataString)
-          if (memberArray.roles.includes(bot.role.serid)) {
+        message.client.guilds.cache.get('337013993669656586').members.fetch({ user, cache: false }).then(memberData => {
+          console.log(memberData._roles.includes)
+          if (memberData._roles.includes(bot.role.serid)) {
             message.channel.send('you already have access, if you want to remove it react with \u2705').then(msg => {
               msg.react('\u2705')
-              setTimeout(() => {
-                var oof = setTimeout(() => { clearInterval(reactReact); try { msg.delete(1) } catch (err) { console.log('message already deleted') } /*message.delete(1)*/ }, 15000)
-                var reactReact = setInterval(() => {
-                  if (msg.reactions.get('\u2705').users.get(message.author.id) != undefined) {
-                    message.reply('Your access has been removed')
-                    try { msg.delete(1) } catch (err) { console.log('message already deleted')}
-                    role('remove', message, bot.role.serid)
-                    clearInterval(reactReact)
-                    clearInterval(oof)
-                  }
-                }, 400)
-              },500)
+              const filter = (reaction, user) => { return ['\u2705'].includes(reaction.emoji.name) && user.id === message.author.id; };
+              
+              msg.awaitReactions(filter, { max: 1, time: 60000, errors: ['time'] }).then(collected => {
+                const reaction = collected.first();
+              
+                if (reaction.emoji.name === '\u2705') {
+                  message.reply('Your access has been removed')
+                  try { msg.delete({ timeout: 1, reason: 'bot removed'}) } catch (err) { console.log('message already deleted')}
+                  role('remove', message, bot.role.serid)
+                }
+              }).catch(collected => {
+                try { msg.delete({ timeout: 1, reason: 'bot removed'}) } catch (err) { console.log('message already deleted')}
+              });
             });
           } else {
-            const embed = new MessageEmbed()
+            const embed = new Client.MessageEmbed()
               .setColor(0xFEF65B)
               .setTitle('Serious chat opt in WARNING')
               .setDescription(bot.text.serious);
             message.channel.send({ embed }).then(msg => {
               setTimeout(() => {
                 msg.react('\u2705')
-                setTimeout(() => {
-                  var oof = setTimeout(() => { clearInterval(reactReact); try { msg.delete(1) } catch (err) { console.log('message already deleted') } /*message.delete(1)*/ }, 30000)
-                  var reactReact = setInterval(() => {
-                    if (msg.reactions.get('\u2705').users.get(message.author.id) != undefined) {
-                      message.reply('You now have access')
-                      try { msg.delete(1) } catch (err) { console.log('message already deleted')}
-                      role('add', message, bot.role.serid)
-                      clearInterval(reactReact)
-                      clearInterval(oof)
-                    }
-                  }, 400)
-                },500)
+                const filter = (reaction, user) => { return ['\u2705'].includes(reaction.emoji.name) && user.id === message.author.id; };
+              
+                msg.awaitReactions(filter, { max: 1, time: 60000, errors: ['time'] }).then(collected => {
+                  const reaction = collected.first();
+                
+                  if (reaction.emoji.name === '\u2705') {
+                    message.reply('You now have access')
+                    try { msg.delete({ timeout: 1, reason: 'bot removed'}) } catch (err) { console.log('message already deleted')}
+                    role('add', message, bot.role.serid)
+                  }
+                }).catch(collected => {
+                  try { msg.delete({ timeout: 1, reason: 'bot removed'}) } catch (err) { console.log('message already deleted')}
+                });
               })
             });
           }
@@ -947,13 +918,17 @@ client.on('message', message => {
 
       if (command === 'mcserver') {
         extIP((err, ip) => {
-          const embed = new MessageEmbed()
+          const embed = new Client.MessageEmbed()
             .setColor(0xFEF65B)
             .setTitle('Community minecraft server running 1.14')
             .setDescription(`Join now: mc.doddlecord.com\n\nlatest IP: -----> ${ip}`)
             .setFooter('If you have connection inssues in the future, use the latest IP address');
           message.channel.send({ embed });
         });
+      }
+
+      if (command === 'test') {
+        memberData(message.author.id, message.author.displayName, )
       }
 
       if (command === 'time') {
@@ -971,25 +946,22 @@ client.on('message', message => {
               if (zoneconver === 'not a timezone') {
                 message.channel.send('The timezone or location you provided we could not find in our database, please try again')
               } else {
-                consandra.execute(`UPDATE member_data SET timeOrLoc = ? WHERE id = ${dbData['id']}`, [zoneconver], {prepare: true});
+                consandra.execute(`UPDATE member_data SET timeorloc = ? WHERE id = ${dbData['id']}`, [zoneconver], {prepare: true});
                 message.channel.send(zoneconver + ' is now set as your time or location')
               }
             }, 1000);
           } else {
             if (args[0] != null) {
               var mentionedUser = message.mentions.users.first();
-              consandra.execute(`SELECT timeOrLoc FROM member_data WHERE userid = "${mentionedUser.id}"`, (err, result) => {
-                const row = result.first();
+              var memberData = message.guild.members.cache.get(mentionedUser.id)
+              consandra.execute(`SELECT timeorloc, userid FROM member_data WHERE userid = '${mentionedUser.id}'`, (err, result) => {
+                console.log(mentionedUser)
                 if (mentionedUser === undefined) {
                   message.channel.send('For help type d!timehelp')
-                } else if (row['timeOrLoc'] === '') {
+                } else if (result.rows[0].timeorloc === null) {
                   message.channel.send('Look like they may have not set a time yet')
                 } else {
-                  if (row['timeOrLoc.length'] > 2) {
-                    message.channel.send('In ' + row['timeOrLoc'] + ', the local time is ' + moment.tz(Date.now(), row['timeOrLoc']).format('hh:mmA z'))
-                  } else {
-                    message.channel.send('For help type d!timehelp')
-                  }
+                  message.channel.send('For ' + memberData.displayName + ', the local time is ' + moment.tz(Date.now(), result.rows[0].timeorloc).format('hh:mmA z'))
                 }
               })
             } else {
