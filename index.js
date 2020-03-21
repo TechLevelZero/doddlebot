@@ -6,14 +6,11 @@ const crypto = require('crypto');
 const config = require('./json_files/config.json');
 const bot = require('./json_files/data.json');
 const cassandra = require('cassandra-driver');
-// const Uuid = require('cassandra-driver').types.Uuid;
-// const mysql = require('mysql');
 const { spawn } = require('child_process')//.spawn;
 const upsidedown = require('upsidedown');
 var moment = require('moment-timezone');
 const compare = require('js-levenshtein'); // to be used for intro comparions
 const extIP = require('external-ip')();
-const fs = require('fs');
 const CronJob = require('cron').CronJob
 
 var justJoined = false
@@ -175,30 +172,15 @@ if (__dirname.match('STABLE')) {
   client.login(config.token);
 } else {
   client.login(config.DEVtoken);
+  client.on('debug', e => {return console.info(e)});
 }
 
 // Discord error handleing
 client.on('error', e => {return console.error(e)});
 client.on('warn', e => {return console.warn(e)});
-// client.on('debug', e => console.info(e));
-client.on('debug', e => {
-  if (e.match('latency')) {
-    var str = '';
-    var currentTime = new Date()
-    var days = currentTime.getDay()
-    var months = currentTime.getMonth()
-    var years = currentTime.getFullYear()
-    var hours = currentTime.getHours()
-    var minutes = currentTime.getMinutes()
-    var seconds = currentTime.getSeconds()
-    str += (' ' + hours + ':' + minutes + ':' + seconds + '   ' + days + '/' + months + '/' + years);
-    console.log('Core: ' + e + str)
-  }
-});
 
 // Loads logs and sets activity
 client.on('ready', () => {
-  // console.log(client.guilds.cache.get('337013993669656586').members.filter(m => {return m.presence.status === 'online'}).size);
   client.user.setActivity('With doddleolphin', { type: 'PLAYING' });
   console.log(`Logged in as ${client.user.username} ${bot.system.ver}`);
 
@@ -232,51 +214,51 @@ client.on('ready', () => {
       });
     })
   });
-  if (__dirname.match('STABLE')) {
-    job.start();
-  }
+  // if (__dirname.match('STABLE')) {
+  job.start();
+  // }
 });
 
 // New memeber procedure
 // Discord login, looks to see if in DEV or STABLE branch
 client.on('guildMemberAdd', member => {
   justJoined == true
-  if (__dirname.match('STABLE')) {
-    const message = member
-    function roleAM2(AOR, message, role) {
-      message.guild.members.cache.get(message.id).roles[AOR](role);
-    }
-    function welcomeEmbed() {
-      channel('introduceyourself').send(`${member.guild.members.cache.get(member.id)}`);
-      const embed = new Client.MessageEmbed()
-        .setColor(0xFEF65B)
-        .setTitle('**Welcome to doddlecord!**')
-        .setImage('https://cdn.discordapp.com/attachments/401431353482280960/401486447414345740/dodie_welcome1.png')
-        .setDescription(bot.text.welcomemsg);
-      channel('introduceyourself').send(embed)
-    }
+  // if (__dirname.match('INDEV')) {
+  const message = member
+  function roleAM2(AOR, message, role) {
+    message.guild.members.cache.get(message.id).roles[AOR](role);
+  }
+  function welcomeEmbed() {
+    channel('introduceyourself').send(`${member.guild.members.cache.get(member.id)}`);
+    const embed = new Client.MessageEmbed()
+      .setColor(0xFEF65B)
+      .setTitle('**Welcome to doddlecord!**')
+      .setImage('https://cdn.discordapp.com/attachments/401431353482280960/401486447414345740/dodie_welcome1.png')
+      .setDescription(bot.text.welcomemsg);
+    channel('introduceyourself').send({embed})
+  }
 
-    console.log(`${member.user.tag} (${member.id}) has joined ${member.guild.name}`);
-    logger('info' , member, `${member.user.tag} has joined ${member.guild.name}`);
+  console.log(`${member.user.tag} (${member.id}) has joined ${member.guild.name}`);
+  logger('info' , member, `${member.user.tag} has joined ${member.guild.name}`);
 
-    consandra.execute(`SELECT * FROM member_data WHERE userid = ${member.id}`, (err, result) => {
-      const row = result.first();
-      if (row != null) {
-        if (row['score'] > 1000) {
-          channel('introduceyourself').send(`Hey ${member.guild.members.cache.get(member.id)} welcome back! Looks like you where a member`);
-          roleAM2('add', member, bot.role.memberid);
-        } else {
-          welcomeEmbed()
-        }
+  consandra.execute(`SELECT * FROM member_data WHERE userid = '${member.id}'`, (err, result) => {
+    const row = result.first();
+    if (row != null) {
+      if (row['score'] > 1000) {
+        channel('introduceyourself').send(`Hey ${member.guild.members.cache.get(member.id)} welcome back! Looks like you where a member`);
+        roleAM2('add', member, bot.role.memberid);
       } else {
         welcomeEmbed()
       }
-    });
-  }
+    } else {
+      welcomeEmbed()
+    }
+  });
+  // }
 });
 
 client.on('guildMemberRemove', remember => {
-  consandra.execute(`DELETE FROM weeklypoints WHERE userid = ${remember.id}`)
+  consandra.execute(`DELETE FROM weeklypoints WHERE userid = '${remember.id}'`)
   console.log(`${remember.user.tag} (${remember.id}) Has left ${remember.guild.name}`, '\nMemberData Has Been removed');
   logger('info' , remember, `${remember.user.tag} Has left ${remember.guild.name}`);
   channel('general').send(`${remember.user.tag.slice(0, -5)} has left, can we get some Fs in chat please`)
@@ -295,7 +277,7 @@ client.on('message', message => {
           consandra.execute('INSERT INTO member_data (userid,nickname,level,points,totalpoints,score,roles,wkylevel,wkypoints,wkytotalpoints) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [message.author.id, memberDataDB.displayName, 1, 0, 0, 0, memberDataDB._roles.toString(), 1, 0, 0], { prepare: true }, err => {
             if (err) {
               console.log(err)
-              client.channels.cache.get('400762131252772866').send(`There was an error with ${displayName}'s (${userID}) data, doddlebot has recoved but the DB table may need checking`)
+              client.channels.cache.get('400762131252772866').send(`There was an error with ${message.author.displayName}'s (${userID}) data, doddlebot has recoved but the DB table may need checking`)
             }
             console.log('New Member Data Added To The Table');
           });
@@ -342,7 +324,7 @@ client.on('message', message => {
         
         if (command === 'data') {
           if ( parseInt(dbData['dataepoch']) < (Date.now() - 6.048e+8)) {
-            consandra.execute(`UPDATE member_data SET dataepoch = '${Date.now()}' WHERE id = ${dbData['id']}`);
+            consandra.execute(`UPDATE member_data SET dataepoch = '${Date.now()}' WHERE userid = ${dbData['userid']}`);
             const joinDateArray = `${message.client.guilds.cache.get('337013993669656586').members.cache.get(message.author.id).joinedAt}`.trim().split(/ +/g);
             const joinDateText = `\nYou_joined_on_${joinDateArray[0]}_${joinDateArray[1]}_${joinDateArray[2]}_${joinDateArray[3]}_at_${joinDateArray[4]}`
             logger('info', message.author, 'had requested their data')
@@ -392,15 +374,16 @@ client.on('message', message => {
             { query: `UPDATE  member_data SET points = 0 WHERE userid = '${dbData['userid']}'` },
             { query: `UPDATE  member_data SET totalpoints = ${rounedTotal} WHERE userid = '${dbData['userid']}'` }
           ];
-          consandra.batch(queries).then( console.log('Member Leveled Up') );
+          consandra.batch(queries, { }).then(function() { console.log('Member Leveled Up') }).catch(function(err) { console.log(err) });
           message.channel.send(`You are now level ${dbData['level'] + 1}, ${message.author}`);
         } else {
           const queries = [
             { query: `UPDATE  member_data SET points = ${pointsJSON.points} WHERE userid = '${dbData['userid']}'` },
             { query: `UPDATE  member_data SET totalpoints = ${pointsJSON.totalpoints} WHERE userid = '${dbData['userid']}'` }
           ];
-          consandra.batch(queries)
+          consandra.batch(queries, { }).then().catch(function(err) { console.log(err) });
         }
+        if (message.member.roles.cache.get(bot.role.managersjoshesid) || message.member.roles.cache.get(bot.role.modsid)) return;
         if (dbData['wkylevel'] * 100 <= wkyPointsJSON.points) {
           const rounedTotal = Math.round(wkyPointsJSON.totalpoints/100) * 100
           const queries = [
@@ -408,20 +391,13 @@ client.on('message', message => {
             { query: `UPDATE  member_data SET wkypoints = 0 WHERE userid = '${dbData['userid']}'` },
             { query: `UPDATE  member_data SET wkytotalpoints = ${rounedTotal} WHERE userid = '${dbData['userid']}'` }
           ];
-          consandra.batch(queries).then(console.log('[weekly] Member Leveled Up'));
+          consandra.batch(queries, { }).then(function() { console.log('[weekly] Member Leveled Up') }).catch(function(err) { console.log(err) });
         } else {
           const queries = [
             { query: `UPDATE  member_data SET wkypoints = ${wkyPointsJSON.points} WHERE userid = '${dbData['userid']}'` },
             { query: `UPDATE  member_data SET wkytotalpoints = ${wkyPointsJSON.totalpoints} WHERE userid = '${dbData['userid']}'` }
           ];
-          consandra.batch(queries, { })
-          .then(function() {
-            // All queries have been executed successfully
-          })
-          .catch(function(err) {
-            console.log(err)
-            // None of the changes have been applied
-          });
+          consandra.batch(queries, { }).then().catch(function(err) { console.log(err) });
         }
       }
 
@@ -476,13 +452,13 @@ client.on('message', message => {
           role('add', message, bot.role.memberid);
           logger('info' , message.author, `${message.author.tag} had been added by doddlebot'`);
           const contentHashed = crypto.createHmac('sha512', config.key).update(cont).digest('hex');
-          consandra.execute(`UPDATE member_data SET hash = '${contentHashed}' WHERE id = ${dbData['id']}`);
+          consandra.execute(`UPDATE member_data SET hash = '${contentHashed}' WHERE userid = ${dbData['userid']}`);
         }
       }
 
       // update nickname in table
       if (dbData['nickname'] != message.member.displayName) {
-        consandra.execute(`UPDATE member_data SET nickname = ? WHERE id = ${dbData['id']}`, [message.member.displayName], err3 => {
+        consandra.execute('UPDATE member_data SET nickname=? WHERE userid=?', [message.member.displayName, message.author.id], { prepare: true }, err3 => {
           if (err3) throw err3;
           console.log('User nickname updated');
         });
@@ -578,7 +554,6 @@ client.on('message', message => {
           }
         }
       }
-
       // end of personality stuff
 
       if (command === 'serverinfo') {
@@ -926,11 +901,7 @@ client.on('message', message => {
           message.channel.send({ embed });
         });
       }
-
-      if (command === 'test') {
-        memberData(message.author.id, message.author.displayName, )
-      }
-
+    
       if (command === 'time') {
         function time() {
           if (args[0] === 'set') {
@@ -946,7 +917,7 @@ client.on('message', message => {
               if (zoneconver === 'not a timezone') {
                 message.channel.send('The timezone or location you provided we could not find in our database, please try again')
               } else {
-                consandra.execute(`UPDATE member_data SET timeorloc = ? WHERE id = ${dbData['id']}`, [zoneconver], {prepare: true});
+                consandra.execute(`UPDATE member_data SET timeorloc = ? WHERE userid = ${dbData['userid']}`, [zoneconver], {prepare: true});
                 message.channel.send(zoneconver + ' is now set as your time or location')
               }
             }, 1000);
