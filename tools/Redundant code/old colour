@@ -1,0 +1,26 @@
+      // colour stuff
+      if (command === 'colour') {
+        const colour = args[0];
+        let mark = false;
+        var colours = ['lime', 'rose', 'blue', 'violet', 'aqua', 'yellow'];
+        for (let i = 0; i < colours.length; i++) {
+          if (colour === colours[i]) {
+            if (message.member.roles.cache.has(bot.role[colours[i].concat('id')])) {
+              message.reply(`you have already have ${colours[i]}`);
+            } else {
+              message.member.roles.remove([bot.role.limeid, bot.role.roseid, bot.role.blueid, bot.role.violetid, bot.role.aquaid, bot.role.yellowid])
+              message.reply(`you now have the ${colours[i]} colour!`).then(() => {
+                message.member.roles.add(bot.role[colours[i].concat('id')])
+              });
+            }
+          } else if (colour === 'remove') {
+            mark = 'remove';
+          }
+        }
+        // r/OutOfTheLoop
+        if (mark === 'remove') {
+          message.member.roles.remove([bot.role.limeid, bot.role.roseid, bot.role.blueskyid, bot.role.lightvioletid, bot.role.aquaid, bot.role.yellowid])
+          message.reply('you have removed your colour');
+        }
+      }
+      //End of colour stuff

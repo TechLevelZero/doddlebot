@@ -4,11 +4,10 @@ const cassandra = require('../node_modules/cassandra-driver');
 const fs = require('fs');
 const PDFDocument = require('../node_modules/pdfkit');
 const bot = require('../json_files/data.json');
-
 // SQL config & connection handleing
 
 const consandra = new cassandra.Client({
-  contactPoints: ['localhost'],
+  contactPoints: ['10.100.1.8'],
   localDataCenter: 'datacenter1',
   keyspace: 'doddlecord'
 });
@@ -18,15 +17,18 @@ consandra.connect();
 let dbData = []
 let resultCQL
 
+//[dwr fesa?]|
+
 // data collection
 var dataPromise = new Promise(function(resolve, reject) {
   consandra.execute(`SELECT * FROM member_data  WHERE userid = '${process.argv[2]}'`, (err, results) => { resultCQL = results })
 
   consandra.execute('SELECT * FROM message_metadata WHERE userid = ?', [process.argv[2]], {prepare : true, fetchSize: 25000}, (err, result) => {
     for (let i = 0; i < result.rowLength; i++) {
-      dbData.push({id:`${result.rows[i].id}`, channel:`${result.rows[i].channel}`, pointscount:`${result.rows[i].pointscount}`, wordcount:`${result.rows[i].wordcount}`, date:`${result.rows[i].date}`})
+      var channel = result.rows[i].channel.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '')
+      dbData.push({id:`${result.rows[i].id}`, channel:`${channel}`, pointscount:`${result.rows[i].pointscount}`, wordcount:`${result.rows[i].wordcount}`, date:`${result.rows[i].date}`})
     }
-    // data ordering
+    // data ordering. can you tell this was copyed and passted, need to learn how it works and make it more readable 
     (function(){
       if (typeof Object.defineProperty === 'function'){
         try{Object.defineProperty(Array.prototype,'sortBy',{value:sortDBdata}); }catch(e){}
@@ -151,7 +153,7 @@ dataPromise.then(function(value) {
       } else {
         doc.text('Points may have no data, this is normal for 2018', { align: 'center' })
       }
-      doc.text(`Messages sent: ` + yearData[i].length, { align: 'center' }) // total message sent
+      doc.text('Messages sent: ' + yearData[i].length, { align: 'center' }) // total message sent
       doc.text('Word Count: ' + wordCount[i], { align: 'center' }) // wordcount
       doc.text('\nChannel usage (In no order)', { align: 'left' }) // top channles
       for (let z = 0; z < Object.keys(channel[i]).length; z++) {
@@ -184,7 +186,7 @@ dataPromise.then(function(value) {
           }
         }
         //  Message #${yearData[i][messageData].id || 'No data'} 
-        const text = `    ${argsDateM[4] || 'No data'} In channel: ${yearData[i][messageData].channel || 'No data'}  Word count: ${yearData[i][messageData].messagecount || 'No data(Img)'}  Points: ${yearData[i][messageData].pointsgained || "No data"}`
+        const text = `    ${argsDateM[4] || 'No data'} In channel: ${yearData[i][messageData].channel || 'No data'}  Word count: ${yearData[i][messageData].wordcount || 'No data(Img)'}  Points: ${yearData[i][messageData].pointscount || 'No data'}`
         function isEven(n) {
           return n % 2 == 0;
         }
@@ -202,7 +204,7 @@ dataPromise.then(function(value) {
       doc.addPage().fontSize(32);
       doc.text('Raw Member Data\n', { align: 'center' });
       doc.fontSize(11);
-      doc.text(`\ndoddlebot ID: ${result.rows[0].id} Discord ID: ${result.rows[0].userid}\n Nickname: ${result.rows[0].nickname}\nIntro Score: ${result.rows[0].score}\nIntro Fingerprint:\n${result.rows[0].hash}\n\nTime Zone: ${result.rows[0].timeOrLoc}\nLevel: ${result.rows[0].level} Points: ${result.rows[0].points} Total Points: ${result.rows[0].totalpoints}\nData Epoch: ${result.rows[0].dataepoch}\nRoles\n${result.rows[0].roles}`, { align: 'center' });
+      doc.text(`\ndoddlebot ID: ${result.rows[0].userid} Discord ID: ${result.rows[0].userid}\nNickname: ${result.rows[0].nickname}\nIntro Score: ${result.rows[0].score}\nIntro Fingerprint:\n${result.rows[0].hash}\n\nTime Zone: ${result.rows[0].timeOrLoc}\nLevel: ${result.rows[0].level} Points: ${result.rows[0].points} Total Points: ${result.rows[0].totalpoints}\nData Epoch: ${result.rows[0].dataepoch}\nRoles\n${result.rows[0].roles}`, { align: 'center' });
     }
   })
   setTimeout(() => { 

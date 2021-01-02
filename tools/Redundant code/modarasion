@@ -1,0 +1,21 @@
+        /* Move to themis, this is way to complex for a non-mod bot
+            const removeSpecial  = message.cleanContent.replace(/([^A-z^ ])/g, '').trim().split(/ +/g)
+            const args = message.content.toLowerCase().slice(config.prefix.length);
+
+            console.log(removeSpecial)
+
+            const valiedInvite = https.request({ hostname: 'discordapp.com', port: 443, path: '/api/invite/getinvitecode', method: 'GET' }, ApiRetun => {
+            ApiRetun.on('data', d => {
+              const json = JSON.parse(d)
+              if (json.code === 10006) {
+                // channel('themods').send(`${message.author.tag} may be tying to post a link, this one ${possibleCode}`)
+              }
+              console.log(json)
+            })
+            })
+            message.delete(message);
+            valiedInvite.on('error', error => {
+            console.error(error)
+            })
+            valiedInghfvite.end()
+            */
