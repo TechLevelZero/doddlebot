@@ -1,0 +1,61 @@
+
+      if (command === 'time') {
+        function time() {
+          if (args[0] === 'set') {
+            var zone = args[1].toUpperCase();
+            var zoneUp = zone.charAt(0).toUpperCase() + zone.slice(1);
+            let zoneconver = 'not a timezone';
+            for (var i = 0; i < moment.tz.names().length; i++) {
+              if (moment.tz.names()[i].match(zoneUp)) {
+                zoneconver = moment.tz.names()[i]
+              }
+            }
+            setTimeout(() => {
+              if (zoneconver === 'not a timezone') {
+                message.channel.send('The timezone or location you provided we could not find in our database, please try again')
+              } else {
+                consandra.execute(`UPDATE member_data SET timeorloc = ? WHERE userid = ${dbData['userid']}`, [zoneconver], {prepare: true});
+                message.channel.send(zoneconver + ' is now set as your time or location')
+              }
+            }, 1000);
+          } else {
+            if (args[0] != null) {
+              var mentionedUser = message.mentions.users.first();
+              var memberData = message.guild.members.cache.get(mentionedUser.id)
+              consandra.execute(`SELECT timeorloc, userid FROM member_data WHERE userid = '${mentionedUser.id}'`, (_err, result) => {
+                if (mentionedUser === undefined) {
+                  message.channel.send('For help type d!timehelp')
+                } else if (result.rows[0].timeorloc === null) {
+                  message.channel.send('Look like they may have not set a time yet')
+                } else {
+                  message.channel.send('For ' + memberData.displayName + ', the local time is ' + moment.tz(Date.now(), result.rows[0].timeorloc).format('hh:mmA z'))
+                }
+              })
+            } else {
+              message.channel.send('For help type d!timehelp')
+            }
+          }
+        }
+        time()
+      }
+
+
+
+
+
+
+
+      if (command === 'timehelp') {
+        const embed = new Client.MessageEmbed()
+          .setColor(0xFEF65B)
+          .setTitle('**Time help**')
+          .setDescription(bot.commandLists.time)
+        message.channel.send({ embed });
+      }
+
+
+
+
+
+
+      "time":"\n**Great scott, looking for some help with time?**\nThis is to set your local time or location so other member know what continent or timezone you are in!\n\n To set your time or location use:\n\nd!time set [location or time zone]\n```css\nExample: d!time set GB\n```\nIf your location does not work try using the timezone you are in\n(use CAPS for timezones)\n```css\nExample: d!time set PST\n```Do not use a timezone then put a number before or after e.g: UTC+6\n\nTo see someone's timezone uses:\nd!time [@user] to get there time!",

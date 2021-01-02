@@ -1,0 +1,16 @@
+      if (command === 'flip') {
+        if (message.content.toLowerCase().match('@')) {
+          if (message.content.toLowerCase().match('<')) {
+            if (message.content.toLowerCase().match('394424134337167360')) {
+              message.channel.send('Oh you think thats funny do you? How\'s about this!');
+              message.channel.send(upsidedown(`${message.author.tag.slice(0, -5)} ︵╯）°□°╯)`));
+            } else {
+              message.channel.send(upsidedown(`${message.cleanContent.slice(8)} ︵╯）°□°╯)`));
+            }
+          } else {
+            message.channel.send('How to use: `d!flip @user');
+          }
+        } else {
+          message.channel.send('How to use: `d!flip @user`');
+        }
+      }
