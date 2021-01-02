@@ -11,12 +11,14 @@ tmp/
 
 \.vs/
 
+json_files/
+
 txt_files/
 
 command lists/
 
 copm.js
 
-json_files/
-
 *.db
+
+.eslintrc.json
