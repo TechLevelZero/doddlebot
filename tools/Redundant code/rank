@@ -1,0 +1,26 @@
+      if (command === 'rank') {
+        if (args[0] != null) {
+          consandra.execute(`SELECT * FROM member_data WHERE userid = '${message.mentions.users.first().id}'`, (err, result) => {
+            const row = result.first();
+            if (row != null) {
+              const embed = new Client.MessageEmbed()
+                .setColor(0xFEF65B)
+                .setTitle(`Rank Of ${row['nickname']}`)
+                .addField('Level', (row['level']))
+                .addField('Points', (row['points']))
+                .addField('There Next Level In', `${(row['level'] * 100) - row['points']} Points`)
+                .setFooter(`Total points gained: ${row['totalpoints']}`);
+              message.channel.send({ embed });
+            } else { message.channel.send('can\'t find any points on this member. `d!rank` for your own rank or `d!rank @user` to get anothers users rank'); }
+          });
+        } else {
+          const embed = new Client.MessageEmbed()
+            .setColor(0xFEF65B)
+            .setTitle(`**Your Rank ${message.member.displayName}**`)
+            .addField('**Level**', (dbData['level']))
+            .addField('**Points**', (dbData['points']))
+            .addField('Next Level In', `${(dbData['level'] * 100) - dbData['points']} Points`)
+            .setFooter(`Total points gained: ${dbData['totalpoints']}`);
+          message.channel.send({ embed });
+        }
+      }

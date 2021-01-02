@@ -1,0 +1,12 @@
+
+    // if (message.author.tag.match('discord.gg')) {
+    //   message.member.kick(message.author.id);
+    //   message.delete(message)
+    //   return;
+    // }
+
+    // if (message.member.displayName.match('discord.gg')) {
+    //   message.member.kick(message.author.id);
+    //   message.delete(message)
+    //   return;
+    // }
