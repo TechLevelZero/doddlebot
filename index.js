@@ -367,14 +367,22 @@ client.on('message', message => {
         embed.setColor(0xFEF65B)
 
         const colours = ['lime', 'rose', 'blue', 'violet', 'aqua', 'yellow']
-
-        for (const index in colours) {
-          const colour = colours[index]
-          if (message.member.roles.cache.has(bot.role[bot.newRoles[colour]])) {
-            message.member.roles.remove(bot.role[bot.newRoles[colour]])
+        
+        function colourRemove() {
+          for (const index in colours) {
+            const colour = colours[index]
+            if (message.member.roles.cache.has(bot.role[bot.newRoles[colour]])) {
+              message.member.roles.remove(bot.role[bot.newRoles[colour]])
+            }
           }
         }
-
+        
+        for (const index in colours) {
+          if (peradded1.toString().match(colours[index])) {
+            colourRemove()
+          }
+        }
+        
         if (per0 === 'remove') {
           embed.setTitle('Roles removed:')
           state = 'removed'
