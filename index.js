@@ -387,10 +387,18 @@ client.on('message', message => {
 
         const colours = ['lime', 'rose', 'blue', 'violet', 'aqua', 'yellow'];
 
+        function colourRemove() {
+          for (const index in colours) {
+            const colour = colours[index]
+            if (message.member.roles.cache.has(bot.role[bot.newRoles[colour]])) {
+              message.member.roles.remove(bot.role[bot.newRoles[colour]])
+            }
+          }
+        }
+        
         for (const index in colours) {
-          const colour = colours[index];
-          if (message.member.roles.cache.has(bot.role[bot.newRoles[colour]])) {
-            message.member.roles.remove(bot.role[bot.newRoles[colour]])
+          if (peradded1.toString().match(colours[index])) {
+            colourRemove()
           }
         }
 
