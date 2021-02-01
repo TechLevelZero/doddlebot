@@ -9,6 +9,8 @@ const { spawn } = require('child_process')//.spawn
 
 const config = require('./json_files/config.json')
 const bot = require('./json_files/data.json')
+const { request } = require('http')
+const { assert } = require('console')
 
 // Cassandra config
 const consandra = new cassandra.Client({
@@ -518,7 +520,7 @@ client.on('message', message => {
               for (var g = 0; g < 5; g++) {
                 // add top 5 role
                 console.log(topxArray[g].userid)
-                //message.guild.members.cache.get(topxArray[g].userid).roles.add(bot.role.top5)
+                message.guild.members.cache.get(topxArray[g].userid).roles.add(bot.role.top5)
               }
             }, 1000)
             channel('announcements').send({ embed })
@@ -540,6 +542,7 @@ client.on('message', message => {
         var roleArray = []
         var wordCount = 0
         var popChannel = []
+        var channelByPop = {}
         let mf = 1
         let m = 0
         let rank = 1
@@ -553,8 +556,9 @@ client.on('message', message => {
           if (j == 3 && k != 13) { return i + 'rd' }
           return i + 'th'
         }
-
+        
         function arrayRole(roles) {
+          console.log('start AR')
           for (var x = 0; x < roles.length; x++) {
             if ((x + 1) != (roles.length)) {
               roleArray.push('<@&' + roles[x] + '> ')
@@ -562,27 +566,42 @@ client.on('message', message => {
               roleArray.push('<@&' + roles[x] + '>')
             }
           }
+          console.log('finish AR')
         }
+
         function count(result) {
-          const row = result.first()
-          for (let i = 0; i < result.rows.length; i++) { // checkes the length of the SQL result
-            wordCount += result.rows[i].pointscount // adding the points
-            popChannel.push(result.rows[i].channel)
+          console.log('start count')
+         const channelIds = message.guild.channels.cache.filter(chan => {return chan.type === 'text'}).map(channel => {return channel.id})
+         
+          for (let i = 0; i < result.rowLength; i++) {
+            channelByPop[result.rows[i].channel_id] = 0
           }
-          for (let i=0; i<popChannel.length; i++)
-          {
-            for (let j=i; j<popChannel.length; j++)
-            {
-              if (popChannel[i] == popChannel[j])
-                m++
-              if (mf<m)
-              {
-                mf=m
-                item = popChannel[i]
-              }
-            }
-            m=0
-          }
+
+          // for (let i = 0; i < result.rowLength; i++) { // checkes the length of the SQL result
+
+          //   wordCount += result.rows[i].word_count // adding the points
+          //   //popChannel.push(result.rows[i].channel_id)
+          //   channelByPop[result.rows[i].channel_id] = (channelByPop[result.rows[i].channel_id] += 1)
+          // }
+          // console.log(result)
+          // for (var i = 0; i < result.rows.length; i++) {
+          //   channelByPop[popChannel[i]] =+ 1
+          // }
+          
+          // for (let i=0; i<popChannel.length; i++)
+          // {
+          //   for (let j=i; j<popChannel.length; j++)
+          //   {
+          //     if (popChannel[i] == popChannel[j])
+          //       m++
+          //     if (mf<m)
+          //     {
+          //       mf=m
+          //       item = popChannel[i]
+          //     }
+          //   }
+          //   m=0
+          // }
         }
 
         if (args[0] != null) {
@@ -594,10 +613,11 @@ client.on('message', message => {
           })
           consandra.execute(`SELECT * FROM member_data WHERE userid = '${mentionedUser.id}'`, (err, result) => {
             if (err) console.log(err)
-            consandra.execute('SELECT * FROM message_metadata WHERE userid = ?', [mentionedUser.id], {prepare : true, fetchSize: 25000}, (_err, archive) => {
+            consandra.execute('SELECT * FROM message_metadata_v2 WHERE user_id = ?', [mentionedUser.id], {prepare : true, fetchSize: 250000}, (_err, archive) => {
               const row = result.first()
+              console.log(archive)
               if (row == null) return message.channel.send('Can not find a profile on this member.')
-              var timez = (row['timeorloc'] || 'Member has not set it yet')
+
               var mentioned = (message.client.guilds.cache.get('337013993669656586').members.cache.get(mentionedUser.id))
               const embed = new Client.MessageEmbed()
                 .setColor(mentioned.displayHexColor)
@@ -614,7 +634,7 @@ client.on('message', message => {
                   .setTitle(`${mentioned.displayName}'s Profile`, true)
                   .setThumbnail(mentionedUser.displayAvatarURL())
                   .addField('Rank',  `Position: ${ordinal(rank)}` + '\nLevel: ' + (row['level']) + '\nPoints: ' + (row['points']) + '\nNext Level In ' + ((row['level'] * 100) - row['points']) + ' Points' + `\nTotal points gained: ${row['totalpoints']}`, true)
-                  .addField('Member Stats', `Messages: ${archive.rows.length}\nWord Count: ${wordCount}\nMost used channel: ${item}\nwith ${mf} messages`, true)
+                  .addField('Member Stats', `Messages: ${archive.rows.length}\nWord Count: ${wordCount}`, true) //\nMost used channel: ${item}\nwith ${mf} messages
                   .addField('\u200B', '\u200B')
                   .addField('Roles', roleArray.join(''))
                   .setFooter(`Joined on ${joinDateArray[0]} ${joinDateArray[1]} ${joinDateArray[2]} ${joinDateArray[3]} at ${joinDateArray[4]}`)
@@ -634,7 +654,7 @@ client.on('message', message => {
             .setThumbnail(message.author.displayAvatarURL())
             .setDescription('Loading...')
           message.channel.send({ embed }).then(msg => {
-            consandra.execute('SELECT * FROM message_metadata WHERE userid = ?', [message.author.id], {prepare : true, fetchSize: 25000}, (err, archive) => {
+            consandra.execute('SELECT * FROM message_metadata_v2 WHERE user_id = ?', [message.author.id], {prepare : true, fetchSize: 250000}, (err, archive) => {
               if (err) console.log(err)
               count(archive)
               arrayRole(message.member._roles)
@@ -654,6 +674,208 @@ client.on('message', message => {
           })
         }
       }
+
+      // someone is going to have to spellcheck this shit lol
+
+      // if (command === 'stats') {
+      //   //////////////////////////////////////////////////////////////
+      //   /// stats command to see member or channel stats and usage ///
+      //   //////////////////////////////////////////////////////////////
+
+      //   function channelStats(id) {
+          
+      //   }
+
+      //   function memberStats(id) {
+
+      //   }
+
+      //   if (args[0] == undefined) {
+      //     // this Default to the channel it was Initialised in.
+      //     channelStats(message.channel.id)
+      //   }
+
+      //   if (!message.mentions.users.first() == undefined) {
+      //     // gets member results
+      //     memberStats(message.mentions.users.first().id)
+      //   }
+
+      //   if (args[0].match(/([<#,0-9,>])/g)) {
+      //     // gets channel Mention
+      //     channelStats(args[0].replace(/([0-9])/g))
+      //   }
+      // }
+      
+      // This is the ticket comand
+      if (command === 'ticket') {
+
+        // embed when opening a ticket
+        function ticketEmbed(contentHashed) {
+          const embed = new Client.MessageEmbed()
+            .setColor(0xFEF65B)
+            .setTitle('Your ticket ID is: ' + contentHashed)
+            .setDescription('To fill in this ticket, see the commmands below\n\n`d!#' + contentHashed + ' title [your title]` to set the title\n`d!#' + contentHashed +' description [your description]` to set the description\n\n*You dont need to use the square brackits [] in your title or description')
+          message.channel.send({ embed })
+        }
+        if (args[0] === 'open') {
+          // stop people making new tictets if one is alrady open
+          let mark = true
+          consandra.execute(`SELECT * FROM tickets`, (err, result) => { 
+            for (const index in result.rows) {
+              if (result.rows[index].userid === message.author.id && result.rows[index].title == undefined) { // check database to see if there is a ticket open with no title with there user id
+                ticketEmbed(result.rows[index].requestid)
+                mark = false
+              }
+            }
+            if (mark) { // if mark is true makes a new ticket and stors it in the database
+              const contentHashed = crypto.createHmac('sha1', 'build_a_problem').update(message.content + message.author.id + message.channel.id + Date.now()).digest('hex').slice(0,5).toLowerCase()
+
+              consandra.execute('INSERT INTO tickets (userid, requestid, date_epoch, votes, voterid, completed) VALUES (?, ?, ?, ?, ?, ?)', [message.author.id, contentHashed, `${Date.now()}`, 1, `{"${message.author.id}": "up"}`, false], { prepare: true }, err => {
+                if (err) console.log(err)
+              })
+              ticketEmbed(contentHashed)
+            }
+          })
+        }
+
+        // list command
+        if (args[0] === 'list') {
+          consandra.execute(`SELECT requestid, userid, request, title, date_epoch, voterid, votes FROM tickets`, (err, result) => {
+            if (err) console.log(err)
+            const pages = (Math.ceil(result.rows.length / 6)) // Returns how many page is need to show all the tickets with a max of 6 tickets per page
+            
+            const embed = new Client.MessageEmbed()
+            embed.setColor(0xFEF65B)
+            embed.setTitle('List of open tickets ')
+
+            // Stop members giveing wongre page numbers
+            if (Number.isInteger(Number(args[1]))) {
+              if (args[1] > pages) return message.channel.send('Page ' + args[1] + ' does not exsist')
+              for (let i = 0; i < (args[1] * 6) - 6; i++) {
+                result.rows.shift()
+              }
+            } else if (args[1] != undefined) {
+              message.channel.send('Page given is not a number')
+            }
+
+            // removes unfinised tickets from the list and slices discripions if they are over 240 chariters in lenght to mitagate the 2000 chaciter limit
+            for (var index = 0; index < result.rows.length; index++) {
+              if (index == 6) break
+              if (result.rows[index].request == undefined) continue
+              if (result.rows[index].title == undefined) continue
+              if (result.rows[index].request.length > 240) { 
+                result.rows[index].request = result.rows[index].request.slice(0, 240) + '...'
+                result.rows[index].title = result.rows[index].title + ' `Use d!#' + result.rows[index].requestid + ' to see full ticket`'
+              } 
+              embed.addField(result.rows[index].title, result.rows[index].request + '\n`Votes: ' + result.rows[index].votes + '`\n`Ticket opened by ' + client.users.cache.get(result.rows[index].userid).tag + ' on ' + new Date(result.rows[index].date_epoch * 1).toLocaleString() + ' ID: ' + result.rows[index].requestid + '`')
+            }
+
+            embed.setFooter('Page ' + (args[1] || 1) + ' of ' + pages) 
+            message.channel.send({ embed })
+          })
+        }
+        
+        // help menu, that is all
+        if (args[0] == undefined) {
+          const embed = new Client.MessageEmbed()
+            .setColor(0xFEF65B)
+            .setTitle('Server tickets')
+            .setDescription('Have an idea or feature you want added to doddlecord? Have a look below to open a ticket or vote for the ones you like!')
+            .addField('Open a ticket', 'To open a ticket, use `d!ticket open` and you will be given a 5 digit code. This is the unique code where members can up or down vote your idea.')
+            .addField('Fill in the ticket',  'Once you have your code, use `d!#xxxxx title [your title]` to set the title of the ticket and then `d!#xxxxx description [your description]` and fill in the description with your recommendation or issue.')
+            .addField('To look at a ticket', 'just use `d![ticket ID]` to see the ticket')
+            .addField('Show open tickets list, Not working yet', 'Use `d!tickets list` to show a list of all the tickets open, orderd by the vote count.')
+            .addField('How to vote', 'Find the ticket id and type `d!#xxxxx [up or down]`')
+          message.channel.send({ embed })
+        }
+      }
+
+      // main ticket interaction  
+      if (command.match('#')) {
+        let ticket_no = command.slice(1)
+        consandra.execute('SELECT * FROM tickets WHERE requestid = ? AND userid = ?', [ticket_no, message.author.id], {prepare : true, fetchSize: 1}, (err, result) => {
+          if (err) console.log(err)
+          if (result.rows.length === 0) return message.channel.send('Could not find a ticket with that ID') // retund given id is not in the database 
+
+          // standend embed of the ticket if no args have been given 
+          if (args[0] == undefined) {
+            const embed = new Client.MessageEmbed()
+              .setColor(0xFEF65B)
+              .setTitle(result.rows[0].title)
+              .setDescription(result.rows[0].request + '\n\nVotes: ' + result.rows[0].votes)
+              .setFooter('Ticket opened by ' + client.users.cache.get(result.rows[0].userid).tag + ' on ' + new Date(result.rows[0].date_epoch * 1).toLocaleString() + ' ID: ' + ticket_no)
+            message.channel.send({ embed })
+          }
+          let mark = false // Mark is set true ticket when it is finiched, this boolean it set in the database under compleat
+
+          // Votes are store in the DB as JSON formated as show: {"userid":"up" or "down"},
+          // every member who votes gets added to the database, this under 'voterid' in the DB.
+          // This keeps a log of who has voted and how they have voted. 
+          // (members will not be able to see via doddlebot, who has voted on what ticket)
+
+          if (args[0] === 'up' || args[0] === 'down') {
+
+            const voterArray = JSON.parse(result.rows[0].voterid)
+            if (voterArray[message.author.id] && voterArray[message.author.id] === args[0]) {
+              return message.channel.send(`You have alredy ${args[0]}voted this ticket`)
+            }
+
+            if (result.rows[0].completed == false) {
+              return message.channel.send('You can not ' + args[0] + 'vote an unfinished ticket')
+            }
+            voterArray[message.author.id] = args[0]
+
+            function vote() {
+              if (args[0] === 'up') return result.rows[0].votes + 1
+              if (args[0] === 'down') return result.rows[0].votes - 1
+            }
+
+            consandra.execute(`UPDATE tickets SET votes = ${vote()}, voterid = ? WHERE requestid = ?`, [JSON.stringify(voterArray), ticket_no, message.author.id], {prepare: true})
+            message.channel.send('You have ' + args[0] + 'voted: ' + result.rows[0].title)
+          }
+
+          // setting title and decription of tickets. This sets limits on charicter count (1700) and only alows the authro of said ticket to make channges
+          if (args[0] === 'title' || args[0] === 'description') {
+            if (result.rows[0].userid != message.author.id) return message.channel.send('You can not change the ' + args[0] + ' on someone else ticket')
+            const title = message.content.slice(10 + args[0].length)
+            var limit = 75
+            if (args[0] === 'description') limit = 1700
+            if (title.length > limit) return message.channel.send('Your ' + args[0] + ' is over the ' + limit + ' character limit by ' + (title.length - limit) + ' characters')
+            if (args[0] === 'description') args[0] = 'request', mark = true
+            consandra.execute(`UPDATE tickets SET ${args[0]} = ?, completed = ? WHERE requestid = ? AND userid = ?`, [title, mark, ticket_no, message.author.id], {prepare: true})
+            message.react('\u2705')
+          }
+
+          // just for mods and admins. if a ticket is down voted to hell or just, shit we can delete it 
+          if (args[0] === 'delete') {
+            if (message.member.roles.cache.has(bot.role.managersjoshesid) || message.member.roles.cache.has(bot.role.themods)) {
+              let react = false
+              // give the member a look at the ticket befor deleting it
+              const embed = new Client.MessageEmbed()
+                .setColor('0xFF0000')
+                .setTitle('Are you sure you want to delete this ticket')
+                .setDescription('```' + result.rows[0].title + '\n\n' + result.rows[0].request + '\n\nTicket opened by ' + client.users.cache.get(result.rows[0].userid).tag + ' on ' + new Date(result.rows[0].date_epoch * 1).toLocaleString() + ' ID: ' + ticket_no + '```')
+              message.channel.send({ embed }).then(msg => {
+                msg.react('\u2705')
+                const filter = (reaction, user) => { return ['\u2705'].includes(reaction.emoji.name) && user.id === message.author.id }
+
+                msg.awaitReactions(filter, { max: 1, time: 3000, errors: ['time'] }).then(reaction => {
+                  if (reaction.first().emoji.name === '\u2705') {
+                    react = true
+                    msg.edit(embed.setTitle('Ticket deleted').setDescription(''))
+                    msg.reactions.removeAll()
+                    consandra.execute('DELETE FROM tickets WHERE userid = ? AND requestid = ?', [result.rows[0].userid, ticket_no])
+                  }
+                }).catch(err => {
+                  msg.reactions.removeAll()
+                  msg.edit(embed.setTitle('Ticket delete timed out').setDescription(''))
+                });
+              })
+            }
+          }
+        })
+      }
+      // ill be documenting all of doddlebot to a simier standerd to this (im hopeing this is some help to you two lol)
 
       if (command === 'top') {
         const arg = parseInt(args[0])
@@ -764,3 +986,13 @@ client.on('message', message => {
     })
   })
 })
+
+// client.ws.on('INTERACTION_CREATE', async interaction => {
+//   client.api.interactions(interaction.id, interaction.token).callback.post({data: {
+//     type: 4,
+//     data: {
+//       content: 'hello world!'
+//       }
+//     }
+//   })
+// })
