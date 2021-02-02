@@ -4,7 +4,7 @@
   "description": "This is a ~~small~~ big bot made for the doddlecord discord server",
   "main": "index.js",
   "dependencies": {
-    "cassandra-driver": "^4.4.0",
+    "cassandra-driver": "^4.6.1",
     "cron": "^1.8.2",
     "discord.js": "github:discordjs/discord.js"
   },
