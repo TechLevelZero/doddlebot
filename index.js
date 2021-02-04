@@ -711,7 +711,7 @@ client.on('message', message => {
     // }
     
     // This is the ticket comand
-    if (command === 'ticket') {
+    if (command === 'ticket' || command === 'tickets') {
 
       // embed when opening a ticket
       function ticketEmbed(contentHashed) {
@@ -795,7 +795,7 @@ client.on('message', message => {
             }
             
             const filter = (reaction, user) => { return ['▶️', '◀️'].includes(reaction.emoji.name) && user.id === message.author.id }
-            const react = new Client.ReactionCollector(msg, filter, {time: 300000})
+            const react = new Client.ReactionCollector(msg, filter, {time: 600000})
   
             .on('collect', collected => {
               collected.users.remove(message.author.id)
@@ -817,7 +817,7 @@ client.on('message', message => {
           .setDescription('Have an idea or feature you want added to doddlecord? Have a look below to open a ticket or vote for the ones you like!')
           .addField('Open a ticket', 'To open a ticket, use `d!ticket open` and you will be given a 5 digit code. This is the unique code where members can up or down vote your idea.')
           .addField('Fill in the ticket',  'Once you have your code, use `d!#xxxxx title [your title]` to set the title of the ticket and then `d!#xxxxx description [your description]` and fill in the description with your recommendation or issue.')
-          .addField('To look at a ticket', 'just use `d![ticket ID]` to see the ticket')
+          .addField('To look at a ticket', 'just use `d!#[ticket ID]` to see the ticket')
           .addField('Show open tickets list, Not working yet', 'Use `d!tickets list` to show a list of all the tickets open, orderd by the vote count.')
           .addField('How to vote', 'Find the ticket id and type `d!#xxxxx [up or down]`')
         message.channel.send({ embed })
@@ -827,7 +827,7 @@ client.on('message', message => {
     // main ticket interaction  
     if (command.match('#')) {
       let ticket_no = command.slice(1)
-      consandra.execute('SELECT * FROM tickets WHERE requestid = ? AND userid = ?', [ticket_no, message.author.id], {prepare : true, fetchSize: 1}, (err, result) => {
+      consandra.execute('SELECT * FROM tickets WHERE requestid = ? ALLOW FILTERING', [ticket_no], {prepare : true, fetchSize: 1}, (err, result) => {
         if (err) console.log(err)
         if (result.rows.length === 0) return message.channel.send('Could not find a ticket with that ID') // retund given id is not in the database 
 
@@ -864,8 +864,12 @@ client.on('message', message => {
             if (args[0] === 'down') return result.rows[0].votes - 1
           }
 
-          consandra.execute(`UPDATE tickets SET votes = ${vote()}, voterid = ? WHERE requestid = ?`, [JSON.stringify(voterArray), ticket_no, message.author.id], {prepare: true})
-          message.channel.send('You have ' + args[0] + 'voted: ' + result.rows[0].title)
+          consandra.execute(`UPDATE tickets SET votes = ${vote()}, voterid = ? WHERE requestid = ? AND userid = ?`, [JSON.stringify(voterArray), ticket_no, result.rows[0].userid], {prepare: true})
+          const embed = new Client.MessageEmbed()
+            .setColor(0xFEF65B)
+            .setTitle('You have ' + args[0] + 'voted: ' + result.rows[0].title)
+            .setFooter('Its now on ' + (result.rows[0].votes + 1) + ' votes. Ticket opened by ' + client.users.cache.get(result.rows[0].userid).tag)
+          message.channel.send({ embed })
         }
 
         // setting title and decription of tickets. This sets limits on charicter count (1700) and only alows the authro of said ticket to make channges
