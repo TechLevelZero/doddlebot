@@ -7,7 +7,7 @@ trigger:
 - STABLE
 
 pool:
-  vmImage: Dev_Deploy
+  vmImage: Test_Deploy
 steps:
 - task: NodeTool@0
   inputs:
