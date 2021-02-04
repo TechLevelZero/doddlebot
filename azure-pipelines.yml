@@ -7,8 +7,7 @@ trigger:
 - STABLE
 
 pool:
-  vmImage: ubuntu-default
-
+  vmImage: Dev_Deploy
 steps:
 - task: NodeTool@0
   inputs:
