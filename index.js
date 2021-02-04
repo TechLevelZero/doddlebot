@@ -718,7 +718,8 @@ client.on('message', message => {
         const embed = new Client.MessageEmbed()
           .setColor(0xFEF65B)
           .setTitle('Your ticket ID is: ' + contentHashed)
-          .setDescription('To fill in this ticket, see the commmands below\n\n`d!#' + contentHashed + ' title [your title]` to set the title\n`d!#' + contentHashed +' description [your description]` to set the description\n\n*You dont need to use the square brackits [] in your title or description')
+          .setDescription('To fill in this ticket, see the commmands below\n\n`d!#' + contentHashed + ' title [your title]` to set the title.\n`d!#' + contentHashed +' description [your description]` to set the description.')
+          .setFooter('Both a title and a description need to be given to be a valid ticket.\nYou dont need to use the square brackits [] in your title or description')
         message.channel.send({ embed })
       }
       if (args[0] === 'open') {
@@ -810,7 +811,7 @@ client.on('message', message => {
       }
       
       // help menu, that is all
-      if (args[0] == undefined) {
+      if (args[0] == undefined || args[0] === "help") {
         const embed = new Client.MessageEmbed()
           .setColor(0xFEF65B)
           .setTitle('Server tickets')
@@ -868,7 +869,7 @@ client.on('message', message => {
           const embed = new Client.MessageEmbed()
             .setColor(0xFEF65B)
             .setTitle('You have ' + args[0] + 'voted: ' + result.rows[0].title)
-            .setFooter('Its now on ' + (result.rows[0].votes + 1) + ' votes. Ticket opened by ' + client.users.cache.get(result.rows[0].userid).tag)
+            .setFooter('Its now on ' + (vote()) + ' votes. Ticket opened by ' + client.users.cache.get(result.rows[0].userid).tag)
           message.channel.send({ embed })
         }
 
