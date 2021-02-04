@@ -744,38 +744,68 @@ client.on('message', message => {
 
       // list command
       if (args[0] === 'list') {
-        consandra.execute(`SELECT requestid, userid, request, title, date_epoch, voterid, votes FROM tickets`, (err, result) => {
-          if (err) console.log(err)
-          const pages = (Math.ceil(result.rows.length / 6)) // Returns how many page is need to show all the tickets with a max of 6 tickets per page
-          
-          const embed = new Client.MessageEmbed()
-          embed.setColor(0xFEF65B)
-          embed.setTitle('List of open tickets ')
+        let reactNumber = 1
+        // Stop members giveing wongre page numbers
+       
+        function ticketsList(msg, page, react, callback) {
+          consandra.execute(`SELECT requestid, userid, request, title, date_epoch, voterid, votes FROM tickets`, (err, result) => {
+            if (err) console.log(err)
+            const pages = (Math.ceil(result.rows.length / 6)) // Returns how many page is need to show all the tickets with a max of 6 tickets per page
 
-          // Stop members giveing wongre page numbers
-          if (Number.isInteger(Number(args[1]))) {
-            if (args[1] > pages) return message.channel.send('Page ' + args[1] + ' does not exsist')
-            for (let i = 0; i < (args[1] * 6) - 6; i++) {
-              result.rows.shift()
+            
+            const embed = new Client.MessageEmbed().setColor(0xFEF65B).setTitle('List of open tickets ')
+
+            if (Number.isInteger(Number(page))) {
+              if (page > pages || page <= 0) {
+                if (react) return
+                return msg.channel.send('Page ' + page + ' does not exsist')
+              }
+              for (let i = 0; i < (page * 6) - 6; i++) {
+                result.rows.shift()
+              }
+            } else if (page != undefined) {
+              msg.channel.send('Page given is not a number')
             }
-          } else if (args[1] != undefined) {
-            message.channel.send('Page given is not a number')
-          }
 
-          // removes unfinised tickets from the list and slices discripions if they are over 240 chariters in lenght to mitagate the 2000 chaciter limit
-          for (var index = 0; index < result.rows.length; index++) {
-            if (index == 6) break
-            if (result.rows[index].request == undefined) continue
-            if (result.rows[index].title == undefined) continue
-            if (result.rows[index].request.length > 240) { 
-              result.rows[index].request = result.rows[index].request.slice(0, 240) + '...'
-              result.rows[index].title = result.rows[index].title + ' `Use d!#' + result.rows[index].requestid + ' to see full ticket`'
-            } 
-            embed.addField(result.rows[index].title, result.rows[index].request + '\n`Votes: ' + result.rows[index].votes + '`\n`Ticket opened by ' + client.users.cache.get(result.rows[index].userid).tag + ' on ' + new Date(result.rows[index].date_epoch * 1).toLocaleString() + ' ID: ' + result.rows[index].requestid + '`')
-          }
-
-          embed.setFooter('Page ' + (args[1] || 1) + ' of ' + pages) 
-          message.channel.send({ embed })
+            // removes unfinised tickets from the list and slices discripions if they are over 240 chariters in lenght to mitagate the 2000 chaciter limit
+            for (var index = 0; index < result.rows.length; index++) {
+              
+              if (index == 6) break
+              if (result.rows[index].request == undefined) continue
+              if (result.rows[index].title == undefined) continue
+              
+              if (result.rows[index].request.length > 240) { 
+                result.rows[index].request = result.rows[index].request.slice(0, 240) + '...'
+                result.rows[index].title = result.rows[index].title + ' `Use d!#' + result.rows[index].requestid + ' to see full ticket`'
+              } 
+              console.log('dfgdfg')
+              embed.addField(result.rows[index].title, result.rows[index].request + '\n`Votes: ' + result.rows[index].votes + '`\n`Ticket opened by ' + client.users.cache.get(result.rows[index].userid).tag + ' on ' + new Date(result.rows[index].date_epoch * 1).toLocaleString() + ' ID: ' + result.rows[index].requestid + '`')
+            }
+            embed.setFooter('Page ' + (page || 1) + ' of ' + pages)
+            
+            callback(embed, pages)
+          })
+        }
+        ticketsList(message, args[1], false, (embedContent, pages) => {
+          console.log(reactNumber + ' page one')
+          message.channel.send(embedContent).then(msg => {
+            if (pages != 1) {
+              msg.react('◀️')
+              msg.react('▶️')
+            }
+            
+            const filter = (reaction, user) => { return ['▶️', '◀️'].includes(reaction.emoji.name) && user.id === message.author.id }
+            const react = new Client.ReactionCollector(msg, filter, {time: 300000})
+  
+            .on('collect', collected => {
+              collected.users.remove(message.author.id)
+              if (collected.emoji.name === '▶️' && reactNumber != pages) reactNumber++, ticketsList(msg, reactNumber, true, (embedContent) => { msg.edit(embedContent) })
+              if (collected.emoji.name === '◀️' && reactNumber !=1) reactNumber--, ticketsList(msg, reactNumber, true, (embedContent) => { msg.edit(embedContent) })
+            })
+            .on('end', end => {
+              msg.reactions.removeAll()
+            })
+          })
         })
       }
       
@@ -812,7 +842,7 @@ client.on('message', message => {
         }
         let mark = false // Mark is set true ticket when it is finiched, this boolean it set in the database under compleat
 
-        // Votes are store in the DB as JSON formated as show: {"userid":"up" or "down"},
+        // Votes are store in the DB formated as JSON as show: {"userid":"up" or "down"},
         // every member who votes gets added to the database, this under 'voterid' in the DB.
         // This keeps a log of who has voted and how they have voted. 
         // (members will not be able to see via doddlebot, who has voted on what ticket)
@@ -863,7 +893,7 @@ client.on('message', message => {
               msg.react('\u2705')
               const filter = (reaction, user) => { return ['\u2705'].includes(reaction.emoji.name) && user.id === message.author.id }
 
-              msg.awaitReactions(filter, { max: 1, time: 3000, errors: ['time'] }).then(reaction => {
+              msg.awaitReactions(filter, { max: 1, time: 30000, errors: ['time'] }).then(reaction => {
                 if (reaction.first().emoji.name === '\u2705') {
                   react = true
                   msg.edit(embed.setTitle('Ticket deleted').setDescription(''))
