@@ -711,7 +711,7 @@ client.on('message', message => {
     // }
     
     // This is the ticket comand
-    if (command === 'ticket' || command === 'tickets') {
+    if (command === 'ticket' || command === 'tickets' || command === 'd') {
 
       // embed when opening a ticket
       function ticketEmbed(contentHashed) {
@@ -747,13 +747,18 @@ client.on('message', message => {
       if (args[0] === 'list') {
         let reactNumber = 1
         // Stop members giveing wongre page numbers
-       
-        function ticketsList(msg, page, react, callback) {
-          consandra.execute(`SELECT requestid, userid, request, title, date_epoch, voterid, votes FROM tickets`, (err, result) => {
+        /**
+         * Gets the top x users, excluding mods
+         * @param  {Object} message - A discord.js message object
+         * @param  {number} page - The number of users you want to retrive
+         * @param  {boolean} react - "True if reaction is trigerd "
+         * @returns {Object} - A discord.js embed with the number of pages
+         */
+        function ticketsList(msg, page, react, comments, callback) {
+          consandra.execute(`SELECT requestid, userid, request, image_link, title, date_epoch, voterid, votes FROM tickets`, (err, result) => {
             if (err) console.log(err)
-            const pages = (Math.ceil(result.rows.length / 6)) // Returns how many page is need to show all the tickets with a max of 6 tickets per page
 
-            
+            const pages = (Math.ceil(result.rows.length / 6)) // Returns how many page is need to show all the tickets with a max of 6 tickets per page
             const embed = new Client.MessageEmbed().setColor(0xFEF65B).setTitle('List of open tickets ')
 
             if (Number.isInteger(Number(page))) {
@@ -770,24 +775,33 @@ client.on('message', message => {
 
             // removes unfinised tickets from the list and slices discripions if they are over 240 chariters in lenght to mitagate the 2000 chaciter limit
             for (var index = 0; index < result.rows.length; index++) {
-              
+              var attachment = ''
               if (index == 6) break
-              if (result.rows[index].request == undefined) continue
-              if (result.rows[index].title == undefined) continue
-              
-              if (result.rows[index].request.length > 240) { 
-                result.rows[index].request = result.rows[index].request.slice(0, 240) + '...'
-                result.rows[index].title = result.rows[index].title + ' `Use d!#' + result.rows[index].requestid + ' to see full ticket`'
-              } 
-              console.log('dfgdfg')
-              embed.addField(result.rows[index].title, result.rows[index].request + '\n`Votes: ' + result.rows[index].votes + '`\n`Ticket opened by ' + client.users.cache.get(result.rows[index].userid).tag + ' on ' + new Date(result.rows[index].date_epoch * 1).toLocaleString() + ' ID: ' + result.rows[index].requestid + '`')
+              if (comments != true) {
+                if (result.rows[index].request == undefined) continue
+                if (result.rows[index].title == undefined) continue
+                if (result.rows[index].request.length > 240) {
+                  if (comments == true) {
+                    const commentsJSON = JSON.parse(result.rows[index].comments)
+                    result.rows[index].title = commentsJSON[index].comment.author + 'on ' + new Date(commentsJSON[index].comment.date_epoch * 1).toLocaleString()
+                    result.rows[index].request = commentsJSON[index].comment.content
+                  } else {
+                    result.rows[index].title = result.rows[index].title + ' `Use d!#' + result.rows[index].requestid + ' to see full ticket`'
+                    result.rows[index].request = result.rows[index].request.slice(0, 240) + '...'
+                  }
+                } 
+                if (result.rows[index].image_link != null || result.rows[index].image_link != undefined) {
+                  if (result.rows[index].image_link.length > 0) attachment = ' [Click to see attachment](' + result.rows[index].image_link + ')'
+                }
+              }
+              embed.addField(result.rows[index].title, result.rows[index].request + attachment + '\n`Votes: ' + result.rows[index].votes + '`\n`Ticket opened by ' + client.users.cache.get(result.rows[index].userid).tag + ' on ' + new Date(result.rows[index].date_epoch * 1).toLocaleString() + ' ID: ' + result.rows[index].requestid + '`')
             }
             embed.setFooter('Page ' + (page || 1) + ' of ' + pages)
             
             callback(embed, pages)
           })
         }
-        ticketsList(message, args[1], false, (embedContent, pages) => {
+        ticketsList(message, args[1], false, false, (embedContent, pages) => {
           console.log(reactNumber + ' page one')
           message.channel.send(embedContent).then(msg => {
             if (pages != 1) {
@@ -839,6 +853,9 @@ client.on('message', message => {
             .setTitle(result.rows[0].title)
             .setDescription(result.rows[0].request + '\n\nVotes: ' + result.rows[0].votes)
             .setFooter('Ticket opened by ' + client.users.cache.get(result.rows[0].userid).tag + ' on ' + new Date(result.rows[0].date_epoch * 1).toLocaleString() + ' ID: ' + ticket_no)
+            if (result.rows[0].image_link != null || result.rows[0].image_link != undefined) {
+              if (result.rows[0].image_link.length > 0) embed.setIma(result.rows[0].image_link)
+            }
           message.channel.send({ embed })
         }
         let mark = false // Mark is set true ticket when it is finiched, this boolean it set in the database under compleat
@@ -877,17 +894,22 @@ client.on('message', message => {
         if (args[0] === 'title' || args[0] === 'description') {
           if (result.rows[0].userid != message.author.id) return message.channel.send('You can not change the ' + args[0] + ' on someone else ticket')
           const title = message.content.slice(10 + args[0].length)
+          var attachment = (message.attachments).array()
           var limit = 75
+          var image_link = null
+
           if (args[0] === 'description') limit = 1700
           if (title.length > limit) return message.channel.send('Your ' + args[0] + ' is over the ' + limit + ' character limit by ' + (title.length - limit) + ' characters')
           if (args[0] === 'description') args[0] = 'request', mark = true
-          consandra.execute(`UPDATE tickets SET ${args[0]} = ?, completed = ? WHERE requestid = ? AND userid = ?`, [title, mark, ticket_no, message.author.id], {prepare: true})
+          if (attachment.length < 0 && attachment[0].url.match('.png' || '.jpeg' || '.jpg' || '.tiff' || '.gif')) image_link = attachment[0].url
+
+          consandra.execute(`UPDATE tickets SET ${args[0]} = ?, completed = ?, image_link = ? WHERE requestid = ? AND userid = ?`, [title, mark, image_link, ticket_no, message.author.id], {prepare: true})
           message.react('\u2705')
         }
 
-        // just for mods and admins. if a ticket is down voted to hell or just, shit we can delete it 
+        // just for mods and admins or the owner of the ticket. if a ticket is down voted to hell or just, shit we/they can delete it 
         if (args[0] === 'delete') {
-          if (message.member.roles.cache.has(bot.role.managersjoshesid) || message.member.roles.cache.has(bot.role.themods)) {
+          if (message.member.roles.cache.has(bot.role.managersjoshesid) || message.member.roles.cache.has(bot.role.themods) || message.author.id === result.rows[0].userid) {
             let react = false
             // give the member a look at the ticket befor deleting it
             const embed = new Client.MessageEmbed()
@@ -945,7 +967,7 @@ client.on('message', message => {
     }
 
     if (command === 'serious') {
-      const user = message.author.id
+      // const user = message.author.id
       if (message.member._roles.includes(bot.role.serid)) {
         message.channel.send('you already have access, if you want to remove it react with \u2705').then(msg => {
           msg.react('\u2705')
