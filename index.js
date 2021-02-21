@@ -814,8 +814,8 @@ client.on('message', message => {
   
             .on('collect', collected => {
               collected.users.remove(message.author.id)
-              if (collected.emoji.name === '▶️' && reactNumber != pages) reactNumber++, ticketsList(msg, reactNumber, true, (embedContent) => { msg.edit(embedContent) })
-              if (collected.emoji.name === '◀️' && reactNumber !=1) reactNumber--, ticketsList(msg, reactNumber, true, (embedContent) => { msg.edit(embedContent) })
+              if (collected.emoji.name === '▶️' && reactNumber != pages) reactNumber++, ticketsList(msg, reactNumber, true, false, (embedContent) => { msg.edit(embedContent) })
+              if (collected.emoji.name === '◀️' && reactNumber !=1) reactNumber--, ticketsList(msg, reactNumber, true, false, (embedContent) => { msg.edit(embedContent) })
             })
             .on('end', end => {
               msg.reactions.removeAll()
