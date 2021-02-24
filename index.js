@@ -711,17 +711,127 @@ client.on('message', message => {
     // }
     
     // This is the ticket comand
-    if (command === 'ticket' || command === 'tickets' || command === 'd') {
-
+    if (command === 'ticket' || command === 'tickets') {
+      let ticket_no = args[0].slice(1)
       // embed when opening a ticket
       function ticketEmbed(contentHashed) {
         const embed = new Client.MessageEmbed()
           .setColor(0xFEF65B)
           .setTitle('Your ticket ID is: ' + contentHashed)
-          .setDescription('To fill in this ticket, see the commmands below\n\n`d!#' + contentHashed + ' title [your title]` to set the title.\n`d!#' + contentHashed +' description [your description]` to set the description.')
+          .setDescription('To fill in this ticket, see the commmands below\n\n`d!ticket #' + contentHashed + ' title [your title]` to set the title.\n`d!ticket #' + contentHashed +' description [your description]` to set the description.')
           .setFooter('Both a title and a description need to be given to be a valid ticket.\nYou dont need to use the square brackits [] in your title or description')
         message.channel.send({ embed })
       }
+
+      function list_v2(msg, JSON, page, react, callback) {
+        const pages = (Math.ceil(JSON.list.length / 5)) // Returns how many page is need to show all the tickets with a max of 5 tickets per page
+        let embed = new Client.MessageEmbed().setColor(JSON.colour || 0xFEF65B).setTitle(JSON.title).setDescription(JSON.description)
+        let attachment = ''
+        let metadata = ''
+
+        if (Number.isInteger(Number(page))) {
+          if (page > pages || page <= 0) {
+            if (react) return
+            return msg.channel.send('Page ' + page + ' does not exsist')
+          }
+          for (let i = 0; i < (page * 5) - 5; i++) {
+            JSON.list.shift()
+          }
+        } else if (page != undefined) {
+          msg.channel.send('Page given is not a number')
+        }
+
+        for (var index = 0; index < JSON.list.length; index++) {
+          
+          if (index == 5) break
+          if (JSON.list[index].request.length > 240) {
+            if (comments == false) {
+              console.log('list')
+              if (JSON.list[index].request == undefined) continue
+              if (JSON.list[index].title == undefined) continue
+              JSON.list[index].title = JSON.list[index].title + ' `Use d!#' + JSON.list[index].requestid + ' to see full ticket`'
+              JSON.list[index].request = JSON.list[index].request.slice(0, 240) + '...'
+            }
+          } 
+
+          if (JSON.list[index].image_link != null || JSON.list[index].image_link != undefined) {
+            if (JSON.list[index].image_link.length > 0) attachment = ' [Click to see attachment](' + JSON.list[index].image_link + ')'
+          }
+          if (args[1] != 'comments') metadata = '\n`Votes: ' + JSON.list[index].votes + '`\n`Ticket opened by ' + client.users.cache.get(JSON.list[index].userid).tag + ' on ' + new Date(JSON.list[index].date_epoch * 1).toLocaleString() + ' ID: ' + JSON.list[index].requestid + '`'
+          embed.addField(JSON.list[index].title, JSON.list[index].request + attachment + metadata)
+        }
+        embed.setFooter('Page ' + (page || 1) + ' of ' + pages)
+
+        callback(embed, pages)
+      }
+
+      /**
+         * Gets the top x users, excluding mods
+         * @param  {Object} message - A discord.js message object
+         * @param  {number} page - The number of users you want to retrive
+         * @param  {boolean} react - "True if reaction is trigerd"
+         * @returns {Object} - A discord.js embed with the number of pages
+         */
+      function list(msg, page, react, comments, callback) {
+        consandra.execute(`SELECT * FROM tickets`, (err, result) => {
+          if (err) console.log(err)
+
+          let pages = (Math.ceil(result.rows.length / 6)) // Returns how many page is need to show all the tickets with a max of 6 tickets per page
+          let embed = new Client.MessageEmbed().setColor(0xFEF65B).setTitle('List of open tickets ')
+
+          if (comments == true) {
+            consandra.execute(`SELECT * FROM tickets WHERE requestid = ? AND completed = true ALLOW FILTERING`, [ticket_no], {prepare: true, fetchSize: 1}, (err, result) => {
+              if (err) console.log(err)
+
+              const commentsJSON = JSON.parse(result.rows[0].comments)
+              pages = (Math.ceil(commentsJSON.length / 6)) // Returns how many page is need to show all the tickets with a max of 6 tickets per page
+              embed = new Client.MessageEmbed().setColor(0xFEF65B).setTitle( result.rows[0].title + ' comments')
+            })
+
+            // console.log(JSON.parse(result.rows[index].comments))
+            // const commentsJSON = JSON.parse(result.rows[index].comments)
+            // result.rows[index].title = commentsJSON[index].author + 'on ' + new Date(commentsJSON[index].comment.date_epoch * 1).toLocaleString()
+            // result.rows[index].request = commentsJSON[index].content
+          } 
+
+          if (Number.isInteger(Number(page))) {
+            if (page > pages || page <= 0) {
+              if (react) return
+              return msg.channel.send('Page ' + page + ' does not exsist')
+            }
+            for (let i = 0; i < (page * 6) - 6; i++) {
+              result.rows.shift()
+            }
+          } else if (page != undefined) {
+            msg.channel.send('Page given is not a number')
+          }
+
+          // removes unfinised tickets from the list and slices discripions if they are over 240 chariters in lenght to mitagate the 2000 chaciter limit
+          for (var index = 0; index < result.rows.length; index++) {
+            var attachment = ''
+            if (index == 6) break
+            // if (comments != true) {
+              if (result.rows[index].request.length > 240) {
+                if (comments == false) {
+                  console.log('list')
+                  if (result.rows[index].request == undefined) continue
+                  if (result.rows[index].title == undefined) continue
+                  result.rows[index].title = result.rows[index].title + ' `Use d!#' + result.rows[index].requestid + ' to see full ticket`'
+                  result.rows[index].request = result.rows[index].request.slice(0, 240) + '...'
+                }
+              } 
+              if (result.rows[index].image_link != null || result.rows[index].image_link != undefined) {
+                if (result.rows[index].image_link.length > 0) attachment = ' [Click to see attachment](' + result.rows[index].image_link + ')'
+              }
+            // }
+            embed.addField(result.rows[index].title, result.rows[index].request + attachment + '\n`Votes: ' + result.rows[index].votes + '`\n`Ticket opened by ' + client.users.cache.get(result.rows[index].userid).tag + ' on ' + new Date(result.rows[index].date_epoch * 1).toLocaleString() + ' ID: ' + result.rows[index].requestid + '`')
+          }
+          embed.setFooter('Page ' + (page || 1) + ' of ' + pages)
+          
+          callback(embed, pages)
+        })
+      }
+
       if (args[0] === 'open') {
         // stop people making new tictets if one is ,alrady open
         let mark = true
@@ -746,82 +856,58 @@ client.on('message', message => {
       // list command
       if (args[0] === 'list') {
         let reactNumber = 1
+        let JSON_data = {}
         // Stop members giveing wongre page numbers
-        /**
-         * Gets the top x users, excluding mods
-         * @param  {Object} message - A discord.js message object
-         * @param  {number} page - The number of users you want to retrive
-         * @param  {boolean} react - "True if reaction is trigerd "
-         * @returns {Object} - A discord.js embed with the number of pages
-         */
-        function ticketsList(msg, page, react, comments, callback) {
-          consandra.execute(`SELECT requestid, userid, request, image_link, title, date_epoch, voterid, votes FROM tickets`, (err, result) => {
-            if (err) console.log(err)
+        consandra.execute(`SELECT * FROM tickets`, (err, result) => { 
+          JSON_data.colour = 0xFEF65B
+          JSON_data.title = 'List of open tickets'
+          // JSON.description = ''
+          JSON_data.list = result.rows
 
-            const pages = (Math.ceil(result.rows.length / 6)) // Returns how many page is need to show all the tickets with a max of 6 tickets per page
-            const embed = new Client.MessageEmbed().setColor(0xFEF65B).setTitle('List of open tickets ')
-
-            if (Number.isInteger(Number(page))) {
-              if (page > pages || page <= 0) {
-                if (react) return
-                return msg.channel.send('Page ' + page + ' does not exsist')
+          list_v2(message, JSON_data, args[1], false, (embedContent, pages) => {
+            message.channel.send(embedContent).then(msg => {
+              if (pages != 1) {
+                msg.react('◀️')
+                msg.react('▶️')
               }
-              for (let i = 0; i < (page * 6) - 6; i++) {
-                result.rows.shift()
-              }
-            } else if (page != undefined) {
-              msg.channel.send('Page given is not a number')
-            }
-
-            // removes unfinised tickets from the list and slices discripions if they are over 240 chariters in lenght to mitagate the 2000 chaciter limit
-            for (var index = 0; index < result.rows.length; index++) {
-              var attachment = ''
-              if (index == 6) break
-              if (comments != true) {
-                if (result.rows[index].request == undefined) continue
-                if (result.rows[index].title == undefined) continue
-                if (result.rows[index].request.length > 240) {
-                  if (comments == true) {
-                    const commentsJSON = JSON.parse(result.rows[index].comments)
-                    result.rows[index].title = commentsJSON[index].comment.author + 'on ' + new Date(commentsJSON[index].comment.date_epoch * 1).toLocaleString()
-                    result.rows[index].request = commentsJSON[index].comment.content
-                  } else {
-                    result.rows[index].title = result.rows[index].title + ' `Use d!#' + result.rows[index].requestid + ' to see full ticket`'
-                    result.rows[index].request = result.rows[index].request.slice(0, 240) + '...'
-                  }
-                } 
-                if (result.rows[index].image_link != null || result.rows[index].image_link != undefined) {
-                  if (result.rows[index].image_link.length > 0) attachment = ' [Click to see attachment](' + result.rows[index].image_link + ')'
-                }
-              }
-              embed.addField(result.rows[index].title, result.rows[index].request + attachment + '\n`Votes: ' + result.rows[index].votes + '`\n`Ticket opened by ' + client.users.cache.get(result.rows[index].userid).tag + ' on ' + new Date(result.rows[index].date_epoch * 1).toLocaleString() + ' ID: ' + result.rows[index].requestid + '`')
-            }
-            embed.setFooter('Page ' + (page || 1) + ' of ' + pages)
-            
-            callback(embed, pages)
-          })
-        }
-        ticketsList(message, args[1], false, false, (embedContent, pages) => {
-          console.log(reactNumber + ' page one')
-          message.channel.send(embedContent).then(msg => {
-            if (pages != 1) {
-              msg.react('◀️')
-              msg.react('▶️')
-            }
-            
-            const filter = (reaction, user) => { return ['▶️', '◀️'].includes(reaction.emoji.name) && user.id === message.author.id }
-            const react = new Client.ReactionCollector(msg, filter, {time: 600000})
-  
-            .on('collect', collected => {
-              collected.users.remove(message.author.id)
-              if (collected.emoji.name === '▶️' && reactNumber != pages) reactNumber++, ticketsList(msg, reactNumber, true, false, (embedContent) => { msg.edit(embedContent) })
-              if (collected.emoji.name === '◀️' && reactNumber !=1) reactNumber--, ticketsList(msg, reactNumber, true, false, (embedContent) => { msg.edit(embedContent) })
-            })
-            .on('end', end => {
-              msg.reactions.removeAll()
+              
+              const filter = (reaction, user) => { return ['▶️', '◀️'].includes(reaction.emoji.name) && user.id === message.author.id }
+              const react = new Client.ReactionCollector(msg, filter, {time: 600000})
+    
+              .on('collect', collected => {
+                collected.users.remove(message.author.id)
+                if (collected.emoji.name === '▶️' && reactNumber != pages) reactNumber++, list_v2(msg, JSON.parse(JSON.stringify(JSON_data)), reactNumber ,true, (embedContent) => { msg.edit(embedContent) })
+                if (collected.emoji.name === '◀️' && reactNumber !=1) reactNumber--, list_v2(msg, JSON.parse(JSON.stringify(JSON_data)), reactNumber, true, (embedContent) => { msg.edit(embedContent) })
+                // i hate it but i have to make a copy of the json obj so the .shift() funcion does't destory the origaln data
+              })
+              .on('end', end => {
+                msg.reactions.removeAll()
+              })
             })
           })
         })
+        
+        // list(message, args[1], false, false, (embedContent, pages) => {
+        //   console.log(reactNumber + ' page one')
+        //   message.channel.send(embedContent).then(msg => {
+        //     if (pages != 1) {
+        //       msg.react('◀️')
+        //       msg.react('▶️')
+        //     }
+            
+        //     const filter = (reaction, user) => { return ['▶️', '◀️'].includes(reaction.emoji.name) && user.id === message.author.id }
+        //     const react = new Client.ReactionCollector(msg, filter, {time: 600000})
+  
+        //     .on('collect', collected => {
+        //       collected.users.remove(message.author.id)
+        //       if (collected.emoji.name === '▶️' && reactNumber != pages) reactNumber++, list(msg, reactNumber, true, false, (embedContent) => { msg.edit(embedContent) })
+        //       if (collected.emoji.name === '◀️' && reactNumber !=1) reactNumber--, list(msg, reactNumber, true, false, (embedContent) => { msg.edit(embedContent) })
+        //     })
+        //     .on('end', end => {
+        //       msg.reactions.removeAll()
+        //     })
+        //   })
+        // })
       }
       
       // help menu, that is all
@@ -836,6 +922,146 @@ client.on('message', message => {
           .addField('Show open tickets list, Not working yet', 'Use `d!tickets list` to show a list of all the tickets open, orderd by the vote count.')
           .addField('How to vote', 'Find the ticket id and type `d!#xxxxx [up or down]`')
         message.channel.send({ embed })
+      }
+
+      if (args[0].match('#') && args[0].length === 6) {
+        consandra.execute('SELECT * FROM tickets WHERE requestid = ? ALLOW FILTERING', [ticket_no], {prepare : true, fetchSize: 1}, (err, result) => {
+          if (err) console.log(err)
+          if (result.rows.length === 0) return message.channel.send('Could not find a ticket with that ID') // retund given id is not in the database 
+  
+          // standend embed of the ticket if no args have been given 
+          if (args[1] == undefined) {
+            const embed = new Client.MessageEmbed()
+              .setColor(0xFEF65B)
+              .setTitle(result.rows[0].title)
+              .setDescription(result.rows[0].request + '\n\nVotes: ' + result.rows[0].votes)
+              .setFooter('Ticket opened by ' + client.users.cache.get(result.rows[0].userid).tag + ' on ' + new Date(result.rows[0].date_epoch * 1).toLocaleString() + ' ID: ' + ticket_no)
+              if (result.rows[0].image_link != null || result.rows[0].image_link != undefined) {
+                if (result.rows[0].image_link.length > 0) embed.setImage(result.rows[0].image_link)
+              }
+            message.channel.send({ embed })
+          }
+          let mark = false // Mark is set true ticket when it is finiched, this boolean it set in the database under compleat
+  
+          // Votes are store in the DB formated as JSON as show: {"userid":"up" or "down", "userid":"up" or "down"...},
+          // every member who votes gets added to the database, this under 'voterid' in the DB.
+          // This keeps a log of who has voted and how they have voted. 
+          // (members will not be able to see via doddlebot, who has voted on what ticket)
+  
+          if (args[1] === 'up' || args[1] === 'down') {
+  
+            const voterArray = JSON.parse(result.rows[0].voterid)
+            if (voterArray[message.author.id] && voterArray[message.author.id] === args[1]) {
+              return message.channel.send(`You have alredy ${args[1]}voted this ticket`)
+            }
+  
+            if (result.rows[0].completed == false) {
+              return message.channel.send('You can not ' + args[1] + 'vote an unfinished ticket')
+            }
+            voterArray[message.author.id] = args[1]
+  
+            function vote() {
+              if (args[1] === 'up') return result.rows[0].votes + 1
+              if (args[1] === 'down') return result.rows[0].votes - 1
+            }
+  
+            consandra.execute(`UPDATE tickets SET votes = ${vote()}, voterid = ? WHERE requestid = ? AND userid = ?`, [JSON.stringify(voterArray), ticket_no, result.rows[0].userid], {prepare: true})
+            const embed = new Client.MessageEmbed()
+              .setColor(0xFEF65B)
+              .setTitle('You have ' + args[1] + 'voted: ' + result.rows[0].title)
+              .setFooter('Its now on ' + (vote()) + ' votes. Ticket opened by ' + client.users.cache.get(result.rows[0].userid).tag)
+            message.channel.send({ embed })
+          }
+  
+          // setting title and decription of tickets. This sets limits on charicter count (1700) and only alows the authro of said ticket to make channges
+          if (args[1] === 'title' || args[1] === 'description') {
+            if (result.rows[0].userid != message.author.id) return message.channel.send('You can not change the ' + args[1] + ' on someone else ticket')
+            const title = message.content.slice(17 + args[1].length)
+            var attachment = (message.attachments).array()
+            var limit = 75
+            var image_link = null
+  
+            if (args[1] === 'description') limit = 1700
+            if (title.length > limit) return message.channel.send('Your ' + args[1] + ' is over the ' + limit + ' character limit by ' + (title.length - limit) + ' characters')
+            if (args[1] === 'description') args[1] = 'request', mark = true
+            console.log(attachment[0])
+            if (attachment[0].width != null) image_link = attachment[0].url
+  
+            consandra.execute(`UPDATE tickets SET ${args[1]} = ?, completed = ?, image_link = ? WHERE requestid = ? AND userid = ?`, [title, mark, image_link, ticket_no, message.author.id], {prepare: true})
+            message.react('\u2705')
+          }
+
+          if (args[1] === 'comments') {
+            let reactNumber = 1
+            let JSON_data = {}
+            // Stop members giveing wongre page numbers
+            consandra.execute(`SELECT * FROM tickets WHERE requestid = ? AND completed = true ALLOW FILTERING`, [ticket_no], {prepare: true, fetchSize: 1}, (err, result) => {
+              
+              let parsedComments = JSON.parse(result.rows[0].comments)
+              JSON_data.colour = 0xFEF65B
+              JSON_data.title = "Comments for " + result.rows[0].title
+              JSON_data.description = '```' + result.rows[0].request + '```' + '\n \u200B**Comments**' 
+              JSON_data.list = []
+              for (var index = 0; index < parsedComments.length; index++) {
+                console.log(index)
+                JSON_data.list.push(JSON.parse(`{ "title": "${parsedComments[index].author} on ${new Date(parsedComments[index].date_epoch * 1).toLocaleString()}", "request": "${parsedComments[index].content}", "attachment": "${parsedComments[index].attachment}"}`))
+              }
+
+              console.log(JSON_data)
+    
+              list_v2(message, JSON_data, 1, false, (embedContent, pages) => {
+                
+                message.channel.send(embedContent).then(msg => {
+                  if (pages != 1) {
+                    msg.react('◀️')
+                    msg.react('▶️')
+                  }
+                  
+                  const filter = (reaction, user) => { return ['▶️', '◀️'].includes(reaction.emoji.name) && user.id === message.author.id }
+                  const react = new Client.ReactionCollector(msg, filter, {time: 600000})
+        
+                  .on('collect', collected => {
+                    collected.users.remove(message.author.id)
+                    if (collected.emoji.name === '▶️' && reactNumber != pages) reactNumber++, list_v2(msg, JSON.parse(JSON.stringify(JSON_data)), reactNumber ,true, (embedContent) => { msg.edit(embedContent) })
+                    if (collected.emoji.name === '◀️' && reactNumber !=1) reactNumber--, list_v2(msg, JSON.parse(JSON.stringify(JSON_data)), reactNumber, true, (embedContent) => { msg.edit(embedContent) })
+                    // i hate it but i have to make a copy of the json obj so the .shift() funcion does't destory the origaln data
+                  })
+                  .on('end', end => {
+                    msg.reactions.removeAll()
+                  })
+                })
+              })
+            })
+          }
+  
+          // just for mods and admins or the owner of the ticket. if a ticket is down voted to hell or just, shit we/they can delete it 
+          if (args[1] === 'delete') {
+            if (message.member.roles.cache.has(bot.role.managersjoshesid) || message.member.roles.cache.has(bot.role.themods) || message.author.id === result.rows[0].userid) {
+              let react = false
+              // give the member a look at the ticket befor deleting it
+              const embed = new Client.MessageEmbed()
+                .setColor('0xFF0000')
+                .setTitle('Are you sure you want to delete this ticket')
+                .setDescription('```' + result.rows[0].title + '\n\n' + result.rows[0].request + '\n\nTicket opened by ' + client.users.cache.get(result.rows[0].userid).tag + ' on ' + new Date(result.rows[0].date_epoch * 1).toLocaleString() + ' ID: ' + ticket_no + '```')
+              message.channel.send({ embed }).then(msg => {
+                msg.react('\u2705')
+                const filter = (reaction, user) => { return ['\u2705'].includes(reaction.emoji.name) && user.id === message.author.id }
+  
+                msg.awaitReactions(filter, { max: 1, time: 30000, errors: ['time'] }).then(reaction => {
+                  if (reaction.first().emoji.name === '\u2705') {
+                    react = true
+                    msg.edit(embed.setTitle('Ticket deleted').setDescription(''))
+                    msg.reactions.removeAll()
+                    consandra.execute('DELETE FROM tickets WHERE userid = ? AND requestid = ?', [result.rows[0].userid, ticket_no])
+                  }
+                }).catch(err => {
+                  msg.reactions.removeAll()
+                  msg.edit(embed.setTitle('Ticket delete timed out').setDescription(''))
+                });
+              })
+            }
+          }
+        })
       }
     }
 
