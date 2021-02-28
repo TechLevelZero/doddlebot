@@ -885,7 +885,7 @@ client.on('message', message => {
           if (mark) { // if mark is true makes a new ticket and stors it in the database
             const contentHashed = crypto.createHmac('sha1', 'build_a_problem').update(message.content + message.author.id + message.channel.id + Date.now()).digest('hex').slice(0,5).toLowerCase()
 
-            consandra.execute('INSERT INTO tickets (userid, requestid, date_epoch, votes, voterid, completed, comments) VALUES (?, ?, ?, ?, ?, ?, ?)', [message.author.id, contentHashed, `${Date.now()}`, 1, `{"${message.author.id}": "up", '[]'}`, false], { prepare: true }, err => {
+            consandra.execute('INSERT INTO tickets (userid, requestid, date_epoch, votes, voterid, completed, comments) VALUES (?, ?, ?, ?, ?, ?, ?)', [message.author.id, contentHashed, `${Date.now()}`, 1, `{"${message.author.id}": "up"}`, false, '[]'], { prepare: true }, err => {
               if (err) console.log(err)
             })
             ticketEmbed(contentHashed)
@@ -950,6 +950,7 @@ client.on('message', message => {
       if (args[0].match('#') && args[0].length === 6) {
         consandra.execute('SELECT * FROM tickets WHERE requestid = ? ALLOW FILTERING', [ticket_no], {prepare : true, fetchSize: 1}, (err, result) => {
           if (err) console.log(err)
+          console.log()
           if (result.rows.length == 0) return message.channel.send('Could not find a ticket with that ID') // retund given id is not in the database 
   
           // standend embed of the ticket if no args have been given 
