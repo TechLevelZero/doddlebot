@@ -17,15 +17,13 @@ consandra.connect();
 let dbData = []
 let resultCQL
 
-//[dwr fesa?]|
-
 // data collection
 var dataPromise = new Promise(function(resolve, reject) {
   consandra.execute(`SELECT * FROM member_data  WHERE userid = '${process.argv[2]}'`, (err, results) => { resultCQL = results })
 
   consandra.execute('SELECT * FROM message_metadata WHERE userid = ?', [process.argv[2]], {prepare : true, fetchSize: 25000}, (err, result) => {
     for (let i = 0; i < result.rowLength; i++) {
-      var channel = result.rows[i].channel.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '')
+      var channel = result.rows[i].channel.replace(/([dwr fesa?]|[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '')
       dbData.push({id:`${result.rows[i].id}`, channel:`${channel}`, pointscount:`${result.rows[i].pointscount}`, wordcount:`${result.rows[i].wordcount}`, date:`${result.rows[i].date}`})
     }
     // data ordering. can you tell this was copyed and passted, need to learn how it works and make it more readable 
