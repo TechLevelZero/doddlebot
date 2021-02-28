@@ -851,10 +851,11 @@ client.on('message', message => {
           let attachment = ''
           if (index == listLength) break
           if (args[1] != 'comments') {
+            if (JSON.list[index].request == undefined || JSON.list[index].request == null ) continue
+            if (JSON.list[index].title == undefined || JSON.list[index].title == null ) continue
             if (JSON.list[index].request.length > 240) {
               console.log('list')
-              if (JSON.list[index].request == undefined) continue
-              if (JSON.list[index].title == undefined) continue
+              
               JSON.list[index].title = JSON.list[index].title + ' `Use d!ticket #' + JSON.list[index].requestid + ' to see full ticket`'
               JSON.list[index].request = JSON.list[index].request.slice(0, 240) + '...'
             } 
