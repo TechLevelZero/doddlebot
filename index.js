@@ -9,6 +9,7 @@ const { spawn } = require('child_process')//.spawn
 
 const config = require('./json_files/config.json')
 const bot = require('./json_files/data.json')
+const { promises } = require('dns')
 
 // Cassandra config
 const consandra = new cassandra.Client({
@@ -21,11 +22,19 @@ const consandra = new cassandra.Client({
 ///  Function land  ///
 ///////////////////////
 /**
+ * @typedef {Array<objects>} topx
+ * @property {string} userid
+ * @property {string} nickname
+ * @property {number} level
+ * @property {number} points
+ * @property {number} totalpoint
+ */
+
+/**
  * Gets the top x users, excluding mods
- * @param  {Object} message - A discord.js message object
- * @param  {number} x - The number of users you want to retrive
- * @param  {string} mode - "total" or "weekly"
- * @returns {Object} - A discord.js embed with the top x members
+ * @param  {number} x - The number of users you want to retrive 
+ * @param  {string} mode - total or weekly
+ * @returns {topx} - Returns orderd array of members by totalpoint
  */
 function topx(x, mode, callback) {
   let queery = '' // geddit? It's because we're all gay.
@@ -71,23 +80,22 @@ function topx(x, mode, callback) {
     callback(topxSortBy)
   })
 }
-// returns channel collection
+
 /**
  * All the available channels
  * @param  {string} - Channel name
- * @returns {Object} - A channel object
+ * @returns {Collection} A channel object
  */
-function channel(channel) {
-  return client.channels.cache.get(bot.channels[channel]) // cache?
+function channel(channel_name) {
+  return client.channels.cache.get(bot.channels[channel_name])
 }
+
 /**
  * loggerSQL function
- * @param  {string} type - Types of logssql
- * - system
- * - info
- * - error
- * @param  {object} member - Members's discord collection
- * @param  {string} data - Text data you want to log
+ * 
+ * @param  {string} type - Type of log [system, info, error]
+ * @param  {object} member - Members's discord js collection.
+ * @param  {string} data - Text you want to log.
  */
 function logger(type, member, data) {
   consandra.execute('INSERT INTO logger (id,type,userid,message,date) VALUES (uuid(), ?, ?, ?, ?)', [ type, member.id, data, Date.now()], { prepare: true }, err => {
@@ -100,7 +108,10 @@ consandra.connect()
 
 const client = new Client.Client()
 
-// Discord login, looks to see if in DEV or STABLE branch
+/** 
+ * Discord login, looks to see if in DEV or STABLE branch
+ * Checks to see if in STABLE or INDEV and picks the corospoinding token
+ */
 if (__dirname.match('STABLE')) {
   client.login(config.token)
 } else {
@@ -112,7 +123,7 @@ if (__dirname.match('STABLE')) {
 client.on('error', e => {return console.error(e)})
 client.on('warn', e => {return console.warn(e)})
 
-// Loads logs and sets activity
+/**  Loads logs and sets activity. Also starts a cron job for the weekly-ish top 5 */
 client.on('ready', () => {
   client.user.setActivity('With doddleolphin', { type: 'PLAYING' })
   console.log(`Logged in as ${client.user.username} ${bot.system.ver}`)
@@ -127,7 +138,6 @@ client.on('ready', () => {
         logger('system', client.user, `This week, ${prune} members have been removed`)
         serverChannels.get(bot.channels.testfacility).send(`The prune this week resuted in ${prune} members being removed`)
       })
-
       topx(5, 'weekly', (topx) => {
         const embed = new Client.MessageEmbed()
         embed.setColor(0xFEF65B)
@@ -139,7 +149,7 @@ client.on('ready', () => {
           roles.members.map(_m => {
             message.member.roles.add(bot.role.top5)
           })
-        }) // I know this is grim but its the only way
+        })
         serverChannels.get(bot.channels.themods).send({ embed })
         serverChannels.get(bot.channels.themods).send(', does this look ok? Is it sunday? If everything is ok, use `d!send` to publish')
       })
@@ -150,28 +160,39 @@ client.on('ready', () => {
   }
 })
 
-// New memeber procedure
-// Discord login, looks to see if in DEV or STABLE branch
+/** @event guildMemberAdd- Whene a member joins their username is checked for a invite link. */ 
+// need to add a few more to the list
 client.on('guildMemberAdd', member => { 
   if (member.user.tag.match('discord.gg')) {
     member.kick(member.id)
     return
   }
-
   logger('info' , member, `${member.user.tag} has joined ${member.guild.name}`)
 })
 
+/** @event guildMemberRemove - Removes member data from the database. */
+// need to set up removele of there member ID from metadata archive
 client.on('guildMemberRemove', remember => {
   consandra.execute(`DELETE FROM member_data WHERE userid = '${remember.id}'`)
   logger('info' , remember, `${remember.user.tag} Has left ${remember.guild.name}`)
   channel('themods').send(`${remember.user.tag.slice(0, -5)} has left the server`)
 })
 
+/** @event message - Trigers when messages is sent. */
 client.on('message', message => {
+  /** @namespace MessageEvent */
+  // if a bot send a message it is ingnored from the outset
   if (message.author.bot) return
 
-  // This checks if the member had data on the db if not it will insert a new row with the members data
-  var memberPromise = new Promise(function(resolve, _reject) {
+  /**
+   * Member data Promise 
+   * @param {resolve}
+   * @param {_reject}
+   * @description Checks wether the author has member data in the datebase, if not they are added to the datebase here and the message is rejected.
+   * @returns {dbdata} Array of the author's member data.
+   * @memberof MessageEvent
+   */
+  const memberPromise = new Promise(function(resolve, _reject) {
     consandra.execute(`SELECT * FROM member_data WHERE userid = '${message.author.id}'`, (_err4, dbData) => {
       if (dbData.first() === null) {
         consandra.execute('INSERT INTO member_data (userid,nickname,level,points,totalpoints,score,roles,wkylevel,wkypoints,wkytotalpoints) VALUES (?,?,?,?,?,?,?,?,?,?)', [`${message.author.id}`, `${message.member.displayName}`, 1, 0, 0, 0, `${message.member._roles}`, 1, 0, 0], { prepare: true }, err => {
@@ -190,9 +211,39 @@ client.on('message', message => {
     })
   })
 
+   /**
+    * MemberPromise return
+    * @param {dbdata} data
+    * @param {string|boolean} nope
+    * @memberof MessageEvent
+    */
   memberPromise.then(function(data, nope) {
     if (nope === 'error in member data') return
 
+    /**
+     * @typedef {object} dbdata - An object of the message author's data.
+     * 
+     * @property {string} userid
+     * @property {string} nickname
+     * @property {string} hash
+     * @property {number} score
+     * @property {number} level
+     * @property {number} point
+     * @property {number} totalpoints
+     * @property {number} wkylevel
+     * @property {number} wkypoints
+     * @property {number} wkytotalpoints
+     * @property {boolean} member
+     * @property {string} roles
+     * @deprecated {string} dataepoch, {string} timeorloc, {string} ticketvotes, {number} wkylevelv2
+     * @memberof MessageEvent
+     */
+
+    /**
+     * @const {dbdata} dbData - Message author's database data
+     * @see dbdata
+     * @memberof MessageEvent
+     */
     const dbData = data.first()
     const args = message.content.toLowerCase().slice(config.prefix.length).trim().split(/ +/g)
     const command = args.shift().toLowerCase()
@@ -216,7 +267,13 @@ client.on('message', message => {
       }
     }
 
-    // getting redone in 1.5
+    /**
+     * DataPDF allows users to request there data from doddlebot in a nice formated PDF
+     * 
+     * @version 1.3
+     * @deprecated Will be getting a rework in 1.5 or in the move to TypeScript
+     * @memberof MessageEvent
+     */
 
     // if (message.channel.type === 'dm') {
     //   if (command === 'data') {
@@ -259,12 +316,18 @@ client.on('message', message => {
     // }
     if (message.channel.type === 'dm') return
 
-    // removes or bans ads messages and bots
+    /** Removes discord ads messages and kicks members with discord.gg links in there name */
     if ((!message.member.roles.cache.has(bot.role.managersjoshesid) || !message.member.roles.cache.has(bot.role.modsid)) && (message.cleanContent.match('discord.gg') || message.author.tag.match('discord.gg') || message.member.displayName.match('discord.gg'))) {
       if (!message.cleanContent.match('discord.gg')) message.member.kick(message.author.id)
       message.delete(message)
       return
     }
+
+    /**
+     * Points System, genorates a random number between 5 and 22 and adds it too totalpoints in the author member data
+     * @version 2.1
+     * @memberof MessageEvent
+     */
 
     let ganinedpoints = 0
     if (message.content.length > 8 && !message.cleanContent.match('pls ')) {
@@ -308,12 +371,20 @@ client.on('message', message => {
         }
       }
     }
-    // Adds server metadata to the table, server stats can be shown with this data
+
+    /** Adds author's message metadata to the table, server stats can be shown with this data */
     consandra.execute('INSERT INTO message_metadata (id,userid,username,channel,channelid,date,wordcount,pointscount) VALUES (uuid(),?,?,?,?,?,?,?)', [message.author.id, message.member.displayName, message.channel.name, message.channel.id, Date.now(), count, ganinedpoints], { prepare: true }, err => {
       if (err) throw err
       console.log('Message Metadata Archived')
     })
 
+    /** 
+     * AutoMember
+     * @version 2.0.1
+     * 
+     * @desc If user is not a member this checks there messages against a word bank and if a messages hit over 1000 they are automatically added as a member.
+     * @memberof MessageEvent
+     */
     if (!message.member.roles.cache.get(bot.role.memberid)) {
       const score = []
       const cont = message.cleanContent.toLowerCase()
@@ -349,32 +420,55 @@ client.on('message', message => {
       }
     }
 
-    // update nickname in table
+    /**
+     * Updates the author's nickname in the table
+     * 
+     * @memberof MessageEvent
+     */
     if (dbData['nickname'] != message.member.displayName) {
       consandra.execute('UPDATE member_data SET nickname=? WHERE userid=?', [message.member.displayName, message.author.id], { prepare: true }, err3 => {
         if (err3) throw err3
         console.log('User nickname updated')
       })
     }
-
+    // returs if the prefix is not at the start of the message.
     if (message.content.indexOf(config.prefix) !== 0) return
 
+    // doddlebot can not be used if you are not a member.
     if (!message.member.roles.cache.has(bot.role.memberid)) {
       message.channel.send((`${message.author} Looks like you are not a member, ask one of my managers or mods to add you. You may have not been added because you probably haven't introduce yourself`))
     }
 
-    // personality stuff
+    /** 
+     * This is the roles command allowing users to add and remove roles via the bot.
+     * @namespace roles 
+     */
     if (command === 'roles') {
-      const per0 = args[0]
-      const per1 = args[1]
+
+      /**
+       * Arrays the arguments for roles so for loops can be used
+       * @type {Array<string>}
+       * @memberof roles
+       */
       const peradded1 = [args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10]]
       const embed = new Client.MessageEmbed()
       const changed = []
       let state = 'NA'
       embed.setColor(0xFEF65B)
 
+      /**
+       * Array of colours avalabme on doddlecord
+       * @type {Array<string>}
+       * @memberof roles
+       */
       const colours = ['lime', 'rose', 'blue', 'violet', 'aqua', 'yellow']
-      
+
+      /**
+       * @function colourRemove
+       * @description Checks thought the avablbale colours and see if the member hads a colour role and removes it when ran.
+       * @see colour
+       * @memberof roles
+       */
       function colourRemove() {
         for (const index in colours) {
           const colour = colours[index]
@@ -384,13 +478,18 @@ client.on('message', message => {
         }
       }
       
+      /**
+       * if a colour is found in the args, then colourRemove() is ran.
+       * @see colourRemove
+       * @memberof roles
+       */
       for (const index in colours) {
         if (peradded1.toString().match(colours[index])) {
           colourRemove()
         }
       }
       
-      if (per0 === 'remove') {
+      if (args[0] === 'remove') {
         embed.setTitle('Roles removed:')
         state = 'removed'
       } else {
@@ -398,8 +497,8 @@ client.on('message', message => {
         state = 'added'
         peradded1.unshift('added')
       }
-      if (per1 === 'all') {
-        if (per0 === 'remove') {
+      if (args[1] === 'all') {
+        if (args[0] === 'remove') {
           const toRemove = ['gay', 'straight', 'bisexual', 'asexual', 'pansexual', 'female', 'male', 'lesbian', 'non binary', 'genderfluid', 'agender', 'hehim', 'sheher', 'theythem', 'trans', 'queer', 'homoromantic', 'heteroromantic', 'biromantic', 'aromantic', 'panromantic', 'karaokeid', 'study']
           for (let i = 0; i < toRemove.length; i++) {
             message.member.roles.remove(bot.role[toRemove[i].concat('id')])
@@ -414,7 +513,7 @@ client.on('message', message => {
             mark = true
             changed.push(`<@&${bot.role[bot.newRoles[key]]}>`)
             // Set role
-            if (per0 === 'remove') {
+            if (args[0] === 'remove') {
               message.member.roles.remove(bot.role[bot.newRoles[key]])
             } else {
               message.member.roles.add(bot.role[bot.newRoles[key]]).then(response => {
@@ -424,7 +523,10 @@ client.on('message', message => {
             }
           }
         }
-        // r/OutOfTheLoop
+        /**
+         * @todo need to redo the fail condision for roles
+         * @memberof roles
+         */
         if (!mark) {
           message.channel.send(`${message.author} example: d!roles gay male memedealer [For help type d!roleshelp]`)
         } else {
@@ -434,7 +536,6 @@ client.on('message', message => {
         }
       }
     }
-    // end of personality stuff
 
     if (command === 'serverinfo') { // needs abit of a refresh
       const embed = new Client.MessageEmbed()
@@ -461,16 +562,17 @@ client.on('message', message => {
     if (command === 'roleshelp') {
       const embed = new Client.MessageEmbed()
         .setColor(0xFEF65B)
-        .setTitle('**Role Help**')
+        .setTitle('Role Help')
         .setDescription('Roles are added to give a little info on who you are to other members of doddlecord.\nThey are completely optional roles though. Make sure you spell them correctly or it will not add them!')
         .addField('Use', '```d!roles [remove] Gay Hehim Artist```')
-        .addField('**Identity  Roles**', (bot.identityRoles), true)
-        .addField('**Sexuality Roles**', (bot.sexualityRoles), true)
-        .addField('**Romantic Roles**', (bot.romanticRoles), true)
-        .addField('**Pronoun Roles**', (bot.pronounRoles), true)
-        .addField('**Extra Roles**', (bot.extraRoles), true)
-        .addField('**Colour Roles**', (bot.colourRoles), true)
-        .addField('Mentionable Roles', (bot.mentionableRoles)) 
+        .addField('Identity  Roles', (bot.identityRoles), true)
+        .addField('Sexuality Roles', (bot.sexualityRoles), true)
+        .addField('Romantic Roles', (bot.romanticRoles), true)
+        .addField('Pronoun Roles', (bot.pronounRoles), true)
+        .addField('Catch all Roles', (bot.question), true)
+        .addField('Colour Roles', (bot.colourRoles), true)
+        .addField('Mentionable Roles', (bot.mentionableRoles), true)
+        .addField('Extra Roles', (bot.extraRoles), true)
         .addField('\u200B', '\u200B', true)
         .setFooter('*Roles are mentionable by everyone!')
       message.channel.send({ embed })
@@ -502,9 +604,9 @@ client.on('message', message => {
     }
 
     if (command === 'ping') {
-        const ping = Math.round(client.ws.ping)
-        message.channel.send(`Ping is ${ping}ms`)
-        logger('system' , message.author, `Ping was ${ping}ms`)
+      const ping = Math.round(client.ws.ping)
+      message.channel.send(`Ping is ${ping}ms`)
+      logger('system' , message.author, `Ping was ${ping}ms`)
     }
 
     if (message.channel.name === 'secrets-for-the-mods') {
@@ -542,7 +644,7 @@ client.on('message', message => {
         }, 10000)
       }
     }
-
+    /** @namespace Profile */
     if (command === 'profile') {
       var roleArray = []
       var wordCount = 0
@@ -712,6 +814,7 @@ client.on('message', message => {
     
     // This is the ticket comand
     if (command === 'ticket' || command === 'tickets') {
+
       let ticket_no = args[0].slice(1)
       // embed when opening a ticket
       function ticketEmbed(contentHashed) {
@@ -723,10 +826,9 @@ client.on('message', message => {
         message.channel.send({ embed })
       }
 
-      function list_v2(msg, JSON, page, react, callback) {
-        const pages = (Math.ceil(JSON.list.length / 5)) // Returns how many page is need to show all the tickets with a max of 5 tickets per page
-        let embed = new Client.MessageEmbed().setColor(JSON.colour || 0xFEF65B).setTitle(JSON.title).setDescription(JSON.description)
-        let attachment = ''
+      function list_v2(msg, JSON, page, react, listLength, callback) {
+        const pages = (Math.ceil(JSON.list.length / listLength)) // Returns how many page is need to show all the tickets with a max of 5 tickets per page
+        let embed = new Client.MessageEmbed().setColor(JSON.colour || 0xFEF65B).setTitle(JSON.title)
         let metadata = ''
 
         if (Number.isInteger(Number(page))) {
@@ -734,102 +836,40 @@ client.on('message', message => {
             if (react) return
             return msg.channel.send('Page ' + page + ' does not exsist')
           }
-          for (let i = 0; i < (page * 5) - 5; i++) {
+          for (let i = 0; i < (page * listLength) - listLength; i++) {
             JSON.list.shift()
           }
         } else if (page != undefined) {
           msg.channel.send('Page given is not a number')
         }
 
+        if (JSON.description != undefined ) {
+          if (JSON.description != '') embed.setDescription(JSON.description)
+        }
+
         for (var index = 0; index < JSON.list.length; index++) {
-          
-          if (index == 5) break
-          if (JSON.list[index].request.length > 240) {
-            if (comments == false) {
+          let attachment = ''
+          if (index == listLength) break
+          if (args[1] != 'comments') {
+            if (JSON.list[index].request.length > 240) {
               console.log('list')
               if (JSON.list[index].request == undefined) continue
               if (JSON.list[index].title == undefined) continue
-              JSON.list[index].title = JSON.list[index].title + ' `Use d!#' + JSON.list[index].requestid + ' to see full ticket`'
+              JSON.list[index].title = JSON.list[index].title + ' `Use d!ticket #' + JSON.list[index].requestid + ' to see full ticket`'
               JSON.list[index].request = JSON.list[index].request.slice(0, 240) + '...'
-            }
-          } 
+            } 
+          }
 
           if (JSON.list[index].image_link != null || JSON.list[index].image_link != undefined) {
             if (JSON.list[index].image_link.length > 0) attachment = ' [Click to see attachment](' + JSON.list[index].image_link + ')'
           }
+
           if (args[1] != 'comments') metadata = '\n`Votes: ' + JSON.list[index].votes + '`\n`Ticket opened by ' + client.users.cache.get(JSON.list[index].userid).tag + ' on ' + new Date(JSON.list[index].date_epoch * 1).toLocaleString() + ' ID: ' + JSON.list[index].requestid + '`'
-          embed.addField(JSON.list[index].title, JSON.list[index].request + attachment + metadata)
+          embed.addField(JSON.list[index].title, JSON.list[index].request.replace(/\r?\n|\r/g, ' ') + attachment + metadata)
         }
         embed.setFooter('Page ' + (page || 1) + ' of ' + pages)
 
         callback(embed, pages)
-      }
-
-      /**
-         * Gets the top x users, excluding mods
-         * @param  {Object} message - A discord.js message object
-         * @param  {number} page - The number of users you want to retrive
-         * @param  {boolean} react - "True if reaction is trigerd"
-         * @returns {Object} - A discord.js embed with the number of pages
-         */
-      function list(msg, page, react, comments, callback) {
-        consandra.execute(`SELECT * FROM tickets`, (err, result) => {
-          if (err) console.log(err)
-
-          let pages = (Math.ceil(result.rows.length / 6)) // Returns how many page is need to show all the tickets with a max of 6 tickets per page
-          let embed = new Client.MessageEmbed().setColor(0xFEF65B).setTitle('List of open tickets ')
-
-          if (comments == true) {
-            consandra.execute(`SELECT * FROM tickets WHERE requestid = ? AND completed = true ALLOW FILTERING`, [ticket_no], {prepare: true, fetchSize: 1}, (err, result) => {
-              if (err) console.log(err)
-
-              const commentsJSON = JSON.parse(result.rows[0].comments)
-              pages = (Math.ceil(commentsJSON.length / 6)) // Returns how many page is need to show all the tickets with a max of 6 tickets per page
-              embed = new Client.MessageEmbed().setColor(0xFEF65B).setTitle( result.rows[0].title + ' comments')
-            })
-
-            // console.log(JSON.parse(result.rows[index].comments))
-            // const commentsJSON = JSON.parse(result.rows[index].comments)
-            // result.rows[index].title = commentsJSON[index].author + 'on ' + new Date(commentsJSON[index].comment.date_epoch * 1).toLocaleString()
-            // result.rows[index].request = commentsJSON[index].content
-          } 
-
-          if (Number.isInteger(Number(page))) {
-            if (page > pages || page <= 0) {
-              if (react) return
-              return msg.channel.send('Page ' + page + ' does not exsist')
-            }
-            for (let i = 0; i < (page * 6) - 6; i++) {
-              result.rows.shift()
-            }
-          } else if (page != undefined) {
-            msg.channel.send('Page given is not a number')
-          }
-
-          // removes unfinised tickets from the list and slices discripions if they are over 240 chariters in lenght to mitagate the 2000 chaciter limit
-          for (var index = 0; index < result.rows.length; index++) {
-            var attachment = ''
-            if (index == 6) break
-            // if (comments != true) {
-              if (result.rows[index].request.length > 240) {
-                if (comments == false) {
-                  console.log('list')
-                  if (result.rows[index].request == undefined) continue
-                  if (result.rows[index].title == undefined) continue
-                  result.rows[index].title = result.rows[index].title + ' `Use d!#' + result.rows[index].requestid + ' to see full ticket`'
-                  result.rows[index].request = result.rows[index].request.slice(0, 240) + '...'
-                }
-              } 
-              if (result.rows[index].image_link != null || result.rows[index].image_link != undefined) {
-                if (result.rows[index].image_link.length > 0) attachment = ' [Click to see attachment](' + result.rows[index].image_link + ')'
-              }
-            // }
-            embed.addField(result.rows[index].title, result.rows[index].request + attachment + '\n`Votes: ' + result.rows[index].votes + '`\n`Ticket opened by ' + client.users.cache.get(result.rows[index].userid).tag + ' on ' + new Date(result.rows[index].date_epoch * 1).toLocaleString() + ' ID: ' + result.rows[index].requestid + '`')
-          }
-          embed.setFooter('Page ' + (page || 1) + ' of ' + pages)
-          
-          callback(embed, pages)
-        })
       }
 
       if (args[0] === 'open') {
@@ -845,7 +885,7 @@ client.on('message', message => {
           if (mark) { // if mark is true makes a new ticket and stors it in the database
             const contentHashed = crypto.createHmac('sha1', 'build_a_problem').update(message.content + message.author.id + message.channel.id + Date.now()).digest('hex').slice(0,5).toLowerCase()
 
-            consandra.execute('INSERT INTO tickets (userid, requestid, date_epoch, votes, voterid, completed) VALUES (?, ?, ?, ?, ?, ?)', [message.author.id, contentHashed, `${Date.now()}`, 1, `{"${message.author.id}": "up"}`, false], { prepare: true }, err => {
+            consandra.execute('INSERT INTO tickets (userid, requestid, date_epoch, votes, voterid, completed, comments) VALUES (?, ?, ?, ?, ?, ?, ?)', [message.author.id, contentHashed, `${Date.now()}`, 1, `{"${message.author.id}": "up", '[]'}`, false], { prepare: true }, err => {
               if (err) console.log(err)
             })
             ticketEmbed(contentHashed)
@@ -858,13 +898,14 @@ client.on('message', message => {
         let reactNumber = 1
         let JSON_data = {}
         // Stop members giveing wongre page numbers
-        consandra.execute(`SELECT * FROM tickets`, (err, result) => { 
+        consandra.execute(`SELECT * FROM tickets`, (err, result) => {
+
           JSON_data.colour = 0xFEF65B
           JSON_data.title = 'List of open tickets'
-          // JSON.description = ''
+          JSON.description = ''
           JSON_data.list = result.rows
 
-          list_v2(message, JSON_data, args[1], false, (embedContent, pages) => {
+          list_v2(message, JSON_data, args[1], false, 5, (embedContent, pages) => {
             message.channel.send(embedContent).then(msg => {
               if (pages != 1) {
                 msg.react('◀️')
@@ -876,8 +917,8 @@ client.on('message', message => {
     
               .on('collect', collected => {
                 collected.users.remove(message.author.id)
-                if (collected.emoji.name === '▶️' && reactNumber != pages) reactNumber++, list_v2(msg, JSON.parse(JSON.stringify(JSON_data)), reactNumber ,true, (embedContent) => { msg.edit(embedContent) })
-                if (collected.emoji.name === '◀️' && reactNumber !=1) reactNumber--, list_v2(msg, JSON.parse(JSON.stringify(JSON_data)), reactNumber, true, (embedContent) => { msg.edit(embedContent) })
+                if (collected.emoji.name === '▶️' && reactNumber != pages) reactNumber++, list_v2(msg, JSON.parse(JSON.stringify(JSON_data)), reactNumber ,true, 5, (embedContent) => { msg.edit(embedContent) })
+                if (collected.emoji.name === '◀️' && reactNumber !=1) reactNumber--, list_v2(msg, JSON.parse(JSON.stringify(JSON_data)), reactNumber, true, 5, (embedContent) => { msg.edit(embedContent) })
                 // i hate it but i have to make a copy of the json obj so the .shift() funcion does't destory the origaln data
               })
               .on('end', end => {
@@ -886,28 +927,6 @@ client.on('message', message => {
             })
           })
         })
-        
-        // list(message, args[1], false, false, (embedContent, pages) => {
-        //   console.log(reactNumber + ' page one')
-        //   message.channel.send(embedContent).then(msg => {
-        //     if (pages != 1) {
-        //       msg.react('◀️')
-        //       msg.react('▶️')
-        //     }
-            
-        //     const filter = (reaction, user) => { return ['▶️', '◀️'].includes(reaction.emoji.name) && user.id === message.author.id }
-        //     const react = new Client.ReactionCollector(msg, filter, {time: 600000})
-  
-        //     .on('collect', collected => {
-        //       collected.users.remove(message.author.id)
-        //       if (collected.emoji.name === '▶️' && reactNumber != pages) reactNumber++, list(msg, reactNumber, true, false, (embedContent) => { msg.edit(embedContent) })
-        //       if (collected.emoji.name === '◀️' && reactNumber !=1) reactNumber--, list(msg, reactNumber, true, false, (embedContent) => { msg.edit(embedContent) })
-        //     })
-        //     .on('end', end => {
-        //       msg.reactions.removeAll()
-        //     })
-        //   })
-        // })
       }
       
       // help menu, that is all
@@ -917,24 +936,38 @@ client.on('message', message => {
           .setTitle('Server tickets')
           .setDescription('Have an idea or feature you want added to doddlecord? Have a look below to open a ticket or vote for the ones you like!')
           .addField('Open a ticket', 'To open a ticket, use `d!ticket open` and you will be given a 5 digit code. This is the unique code where members can up or down vote your idea.')
-          .addField('Fill in the ticket',  'Once you have your code, use `d!#xxxxx title [your title]` to set the title of the ticket and then `d!#xxxxx description [your description]` and fill in the description with your recommendation or issue.')
-          .addField('To look at a ticket', 'just use `d!#[ticket ID]` to see the ticket')
-          .addField('Show open tickets list, Not working yet', 'Use `d!tickets list` to show a list of all the tickets open, orderd by the vote count.')
-          .addField('How to vote', 'Find the ticket id and type `d!#xxxxx [up or down]`')
+          .addField('Fill in the ticket',  'Once you have your ticket ID set the title and description with:\n`d!ticket #[ticket ID] title [your title]` to set the title.\n`d!ticket #[ticket ID] description [your description]` to set the description.')
+          .addField('To look at a ticket', 'Just use `d!ticket #[ticket ID]` to see the ticket.')
+          .addField('Show open tickets list', 'Use `d!ticket list` to show a list of all the tickets open, orderd by the vote count.')
+          .addField('To make, view, and delete comments', 'Use `d!ticket #[ticket ID] comment [your comment]` to add a comment.\nTo view use `d!tickets #[ticket ID] comments`\nTo delete use `d!ticket #[ticket ID] delete #[comment ID]`')
+          .addField('How to vote', 'Find the ticket id and type `d!ticket #[ticket ID] up or down`')
+          .setFooter('You can find ticket and comment IDs when viewing the lists. There is no edit for comments.')
         message.channel.send({ embed })
       }
+
+      if (args[0].match(!'#') && args[0].length === 5) args[0] = '#' + args[0]
 
       if (args[0].match('#') && args[0].length === 6) {
         consandra.execute('SELECT * FROM tickets WHERE requestid = ? ALLOW FILTERING', [ticket_no], {prepare : true, fetchSize: 1}, (err, result) => {
           if (err) console.log(err)
-          if (result.rows.length === 0) return message.channel.send('Could not find a ticket with that ID') // retund given id is not in the database 
+          if (result.rows.length == 0) return message.channel.send('Could not find a ticket with that ID') // retund given id is not in the database 
   
           // standend embed of the ticket if no args have been given 
           if (args[1] == undefined) {
+            const commentsJSON = JSON.parse(result.rows[0].comments)
+            let comments = ''
+            console.log(commentsJSON.length)
+            if (commentsJSON.length == 0) comments = 'No comments'
+            if (commentsJSON.length == 1) { 
+              comments = '1 Comment, to view: ' + `\`d!ticket #${ticket_no} comments\`` 
+            } else if (commentsJSON.length > 1 ) {
+              comments = commentsJSON.length +' Comments, to view: ' + `\`d!ticket #${ticket_no} comments\``
+            }
+            
             const embed = new Client.MessageEmbed()
               .setColor(0xFEF65B)
               .setTitle(result.rows[0].title)
-              .setDescription(result.rows[0].request + '\n\nVotes: ' + result.rows[0].votes)
+              .setDescription(result.rows[0].request + '\n\nVotes: ' + result.rows[0].votes + '\n' + comments)
               .setFooter('Ticket opened by ' + client.users.cache.get(result.rows[0].userid).tag + ' on ' + new Date(result.rows[0].date_epoch * 1).toLocaleString() + ' ID: ' + ticket_no)
               if (result.rows[0].image_link != null || result.rows[0].image_link != undefined) {
                 if (result.rows[0].image_link.length > 0) embed.setImage(result.rows[0].image_link)
@@ -985,7 +1018,7 @@ client.on('message', message => {
             if (title.length > limit) return message.channel.send('Your ' + args[1] + ' is over the ' + limit + ' character limit by ' + (title.length - limit) + ' characters')
             if (args[1] === 'description') args[1] = 'request', mark = true
             console.log(attachment[0])
-            if (attachment[0].width != null) image_link = attachment[0].url
+            if (attachment[0] != undefined && attachment[0].width != null) image_link = attachment[0].url
   
             consandra.execute(`UPDATE tickets SET ${args[1]} = ?, completed = ?, image_link = ? WHERE requestid = ? AND userid = ?`, [title, mark, image_link, ticket_no, message.author.id], {prepare: true})
             message.react('\u2705')
@@ -996,20 +1029,27 @@ client.on('message', message => {
             let JSON_data = {}
             // Stop members giveing wongre page numbers
             consandra.execute(`SELECT * FROM tickets WHERE requestid = ? AND completed = true ALLOW FILTERING`, [ticket_no], {prepare: true, fetchSize: 1}, (err, result) => {
-              
-              let parsedComments = JSON.parse(result.rows[0].comments)
+
               JSON_data.colour = 0xFEF65B
               JSON_data.title = "Comments for " + result.rows[0].title
-              JSON_data.description = '```' + result.rows[0].request + '```' + '\n \u200B**Comments**' 
-              JSON_data.list = []
-              for (var index = 0; index < parsedComments.length; index++) {
-                console.log(index)
-                JSON_data.list.push(JSON.parse(`{ "title": "${parsedComments[index].author} on ${new Date(parsedComments[index].date_epoch * 1).toLocaleString()}", "request": "${parsedComments[index].content}", "attachment": "${parsedComments[index].attachment}"}`))
+              if (result.rows[0].comments == '[]') {
+                JSON_data.description = '```' + result.rows[0].request + '```'
+                JSON_data.list = [{ "title":"There are no comments on this ticket", "request":"Be the first with `d!ticket #" + ticket_no + " comment [your comment]`"}]
+              } else {
+                let parsedComments = JSON.parse(result.rows[0].comments)
+                // + 'opened by ' + client.users.cache.get(result.rows[0].id).tag + ', Votes: ' +  +
+                JSON_data.description = '```' + result.rows[0].request + `\n\nOpend by ${client.users.cache.get(result.rows[0].userid).tag}, Votes: ${result.rows[0].votes}` + '```' + '\n\u200B**Comments**'
+                JSON_data.list = []
+                for (var index = 0; index < parsedComments.length; index++) {
+                  console.log(index)
+                  
+                  JSON_data.list.push(JSON.parse(`{ "title": "${client.users.cache.get(parsedComments[index].userid).tag} \`${new Date(parsedComments[index].date_epoch * 1).toLocaleString()} ID: ${parsedComments[index].id}\`", "request": "${parsedComments[index].content}", "attachment": "${parsedComments[index].attachment}"}`))
+                }
               }
 
               console.log(JSON_data)
     
-              list_v2(message, JSON_data, 1, false, (embedContent, pages) => {
+              list_v2(message, JSON_data, 1, false, 8, (embedContent, pages) => {
                 
                 message.channel.send(embedContent).then(msg => {
                   if (pages != 1) {
@@ -1022,8 +1062,8 @@ client.on('message', message => {
         
                   .on('collect', collected => {
                     collected.users.remove(message.author.id)
-                    if (collected.emoji.name === '▶️' && reactNumber != pages) reactNumber++, list_v2(msg, JSON.parse(JSON.stringify(JSON_data)), reactNumber ,true, (embedContent) => { msg.edit(embedContent) })
-                    if (collected.emoji.name === '◀️' && reactNumber !=1) reactNumber--, list_v2(msg, JSON.parse(JSON.stringify(JSON_data)), reactNumber, true, (embedContent) => { msg.edit(embedContent) })
+                    if (collected.emoji.name === '▶️' && reactNumber != pages) reactNumber++, list_v2(msg, JSON.parse(JSON.stringify(JSON_data)), reactNumber ,true, 8, (embedContent) => { msg.edit(embedContent) })
+                    if (collected.emoji.name === '◀️' && reactNumber !=1) reactNumber--, list_v2(msg, JSON.parse(JSON.stringify(JSON_data)), reactNumber, true, 8, (embedContent) => { msg.edit(embedContent) })
                     // i hate it but i have to make a copy of the json obj so the .shift() funcion does't destory the origaln data
                   })
                   .on('end', end => {
@@ -1033,9 +1073,72 @@ client.on('message', message => {
               })
             })
           }
-  
-          // just for mods and admins or the owner of the ticket. if a ticket is down voted to hell or just, shit we/they can delete it 
+
+          if (args[1] === 'comment') {
+            const commentKeyGenID = crypto.createHmac('sha1', 'build_a_problem').update(message.content + message.author.id + message.channel.id + Date.now()).digest('hex').slice(0,5).toLowerCase()
+            const content = message.cleanContent.slice(24)
+            var commentPayload = JSON.parse(result.rows[0].comments)
+            var attachment = (message.attachments).array()
+            var image_link = null
+
+            if (content === '') return message.channel.send("Comments can't be empty")
+            if (content.length > 240) return message.channel.send("Comments can't be over 240 characters long, your at " + content.length)
+            if (attachment[0] != undefined && attachment[0].width != null) image_link = attachment[0].url
+
+            const commentJSON = `{"id":"${commentKeyGenID}","userid":"${message.author.id}","content":"${content}","date_epoch":"${Date.now()}","attachments":"${image_link}"}`
+
+            commentPayload.push(JSON.parse(commentJSON))
+            console.log(commentPayload)
+            commentPayload = JSON.stringify(commentPayload)
+            console.log(commentPayload)
+            consandra.execute('UPDATE tickets SET comments = ? WHERE requestid = ? AND userid = ? IF EXISTS', [commentPayload, ticket_no, result.rows[0].userid], {prepare: true})
+            message.react('\u2705')
+          }
+          const comments = JSON.parse(result.rows[0].comments)
+          console.log(comments[args[2]] == undefined)
+
+
+          // just for mods and admins or the owner of the ticket. if a ticket is down voted to hell or just shit, we/they can delete it 
           if (args[1] === 'delete') {
+            if (args[2] != undefined) {
+              const comments = JSON.parse(result.rows[0].comments)
+              console.log(args[2].slice(1))
+              var found = false
+              for (const index in comments) {
+                if (comments[index].id == [args[2].slice(1)]) {
+                  found = true
+                  if (comments[index].userid === message.author.id || message.member.roles.cache.has(bot.role.managersjoshesid) || message.member.roles.cache.has(bot.role.themods)) {
+                    const embed = new Client.MessageEmbed()
+                      .setColor('0xFF0000')
+                      .setTitle('Are you sure you want to delete this comment')
+                      .setDescription(comments[index].content)
+                    message.channel.send({ embed }).then(msg => {
+                      msg.react('\u2705')
+                      const filter = (reaction, user) => { return ['\u2705'].includes(reaction.emoji.name) && user.id === message.author.id }
+        
+                      msg.awaitReactions(filter, { max: 1, time: 30000, errors: ['time'] }).then(reaction => {
+                        if (reaction.first().emoji.name === '\u2705') {
+                          react = true
+                          msg.edit(embed.setTitle('Comment deleted').setDescription(''))
+                          msg.reactions.removeAll()
+                          
+                          comments.splice(index, 1)
+                          
+                          consandra.execute('UPDATE tickets SET comments = ? WHERE requestid = ? AND userid = ? IF EXISTS', [JSON.stringify(comments), ticket_no, result.rows[0].userid], {prepare: true})
+                        }
+                      }).catch(err => {
+                        msg.reactions.removeAll()
+                        msg.edit(embed.setTitle('Delete timed out').setDescription(''))
+                      });
+                    })
+                  } else message.channel.send('You can not delete others comments.')
+                  break
+                } 
+              }
+              if (found == false || comments.length == 0) message.channel.send('Comment ID cannot be found.')
+              return
+            }
+          
             if (message.member.roles.cache.has(bot.role.managersjoshesid) || message.member.roles.cache.has(bot.role.themods) || message.author.id === result.rows[0].userid) {
               let react = false
               // give the member a look at the ticket befor deleting it
@@ -1066,102 +1169,7 @@ client.on('message', message => {
     }
 
     // main ticket interaction  
-    if (command.match('#')) {
-      let ticket_no = command.slice(1)
-      consandra.execute('SELECT * FROM tickets WHERE requestid = ? ALLOW FILTERING', [ticket_no], {prepare : true, fetchSize: 1}, (err, result) => {
-        if (err) console.log(err)
-        if (result.rows.length === 0) return message.channel.send('Could not find a ticket with that ID') // retund given id is not in the database 
 
-        // standend embed of the ticket if no args have been given 
-        if (args[0] == undefined) {
-          const embed = new Client.MessageEmbed()
-            .setColor(0xFEF65B)
-            .setTitle(result.rows[0].title)
-            .setDescription(result.rows[0].request + '\n\nVotes: ' + result.rows[0].votes)
-            .setFooter('Ticket opened by ' + client.users.cache.get(result.rows[0].userid).tag + ' on ' + new Date(result.rows[0].date_epoch * 1).toLocaleString() + ' ID: ' + ticket_no)
-            if (result.rows[0].image_link != null || result.rows[0].image_link != undefined) {
-              if (result.rows[0].image_link.length > 0) embed.setIma(result.rows[0].image_link)
-            }
-          message.channel.send({ embed })
-        }
-        let mark = false // Mark is set true ticket when it is finiched, this boolean it set in the database under compleat
-
-        // Votes are store in the DB formated as JSON as show: {"userid":"up" or "down"},
-        // every member who votes gets added to the database, this under 'voterid' in the DB.
-        // This keeps a log of who has voted and how they have voted. 
-        // (members will not be able to see via doddlebot, who has voted on what ticket)
-
-        if (args[0] === 'up' || args[0] === 'down') {
-
-          const voterArray = JSON.parse(result.rows[0].voterid)
-          if (voterArray[message.author.id] && voterArray[message.author.id] === args[0]) {
-            return message.channel.send(`You have alredy ${args[0]}voted this ticket`)
-          }
-
-          if (result.rows[0].completed == false) {
-            return message.channel.send('You can not ' + args[0] + 'vote an unfinished ticket')
-          }
-          voterArray[message.author.id] = args[0]
-
-          function vote() {
-            if (args[0] === 'up') return result.rows[0].votes + 1
-            if (args[0] === 'down') return result.rows[0].votes - 1
-          }
-
-          consandra.execute(`UPDATE tickets SET votes = ${vote()}, voterid = ? WHERE requestid = ? AND userid = ?`, [JSON.stringify(voterArray), ticket_no, result.rows[0].userid], {prepare: true})
-          const embed = new Client.MessageEmbed()
-            .setColor(0xFEF65B)
-            .setTitle('You have ' + args[0] + 'voted: ' + result.rows[0].title)
-            .setFooter('Its now on ' + (vote()) + ' votes. Ticket opened by ' + client.users.cache.get(result.rows[0].userid).tag)
-          message.channel.send({ embed })
-        }
-
-        // setting title and decription of tickets. This sets limits on charicter count (1700) and only alows the authro of said ticket to make channges
-        if (args[0] === 'title' || args[0] === 'description') {
-          if (result.rows[0].userid != message.author.id) return message.channel.send('You can not change the ' + args[0] + ' on someone else ticket')
-          const title = message.content.slice(10 + args[0].length)
-          var attachment = (message.attachments).array()
-          var limit = 75
-          var image_link = null
-
-          if (args[0] === 'description') limit = 1700
-          if (title.length > limit) return message.channel.send('Your ' + args[0] + ' is over the ' + limit + ' character limit by ' + (title.length - limit) + ' characters')
-          if (args[0] === 'description') args[0] = 'request', mark = true
-          if (attachment.length < 0 && attachment[0].url.match('.png' || '.jpeg' || '.jpg' || '.tiff' || '.gif')) image_link = attachment[0].url
-
-          consandra.execute(`UPDATE tickets SET ${args[0]} = ?, completed = ?, image_link = ? WHERE requestid = ? AND userid = ?`, [title, mark, image_link, ticket_no, message.author.id], {prepare: true})
-          message.react('\u2705')
-        }
-
-        // just for mods and admins or the owner of the ticket. if a ticket is down voted to hell or just, shit we/they can delete it 
-        if (args[0] === 'delete') {
-          if (message.member.roles.cache.has(bot.role.managersjoshesid) || message.member.roles.cache.has(bot.role.themods) || message.author.id === result.rows[0].userid) {
-            let react = false
-            // give the member a look at the ticket befor deleting it
-            const embed = new Client.MessageEmbed()
-              .setColor('0xFF0000')
-              .setTitle('Are you sure you want to delete this ticket')
-              .setDescription('```' + result.rows[0].title + '\n\n' + result.rows[0].request + '\n\nTicket opened by ' + client.users.cache.get(result.rows[0].userid).tag + ' on ' + new Date(result.rows[0].date_epoch * 1).toLocaleString() + ' ID: ' + ticket_no + '```')
-            message.channel.send({ embed }).then(msg => {
-              msg.react('\u2705')
-              const filter = (reaction, user) => { return ['\u2705'].includes(reaction.emoji.name) && user.id === message.author.id }
-
-              msg.awaitReactions(filter, { max: 1, time: 30000, errors: ['time'] }).then(reaction => {
-                if (reaction.first().emoji.name === '\u2705') {
-                  react = true
-                  msg.edit(embed.setTitle('Ticket deleted').setDescription(''))
-                  msg.reactions.removeAll()
-                  consandra.execute('DELETE FROM tickets WHERE userid = ? AND requestid = ?', [result.rows[0].userid, ticket_no])
-                }
-              }).catch(err => {
-                msg.reactions.removeAll()
-                msg.edit(embed.setTitle('Ticket delete timed out').setDescription(''))
-              });
-            })
-          }
-        }
-      })
-    }
     // ill be documenting all of doddlebot to a simier standerd to this (im hopeing this is some help to you two lol)
 
     if (command === 'top') {
@@ -1269,6 +1277,7 @@ client.on('message', message => {
           embed.addField("Serious channel", '[This is an opt-in channel use d!serious for more info]\nWhen using the serious channel please be aware that some members may find certain topics triggering. Also remember that this chat is not a replacement for any kind of support you may have in place/need. Always talk to your GP or therapist if you are experiencing issues with your mental health. There is always someone to help you.')
           embed.addField('Allowed', 'Self promoteion is alowed in the related channels but do not spam, Swearing is alowed so long as it is not too much or directed at someone with the intention of causing offense/upset , ')
         message.channel.send({ embed })    
+        console.log(dbData)
     }
   })
 })
