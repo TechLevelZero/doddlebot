@@ -10,8 +10,9 @@
   },
   "devDependencies": {},
   "scripts": {
+    "doc": "jsdoc -c docs/config.json",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node index.js"
+    "run": "node index.js"
   },
   "repository": {
     "type": "git",
