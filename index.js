@@ -13,7 +13,7 @@ const { promises } = require('dns')
 
 // Cassandra config
 const consandra = new cassandra.Client({
-  contactPoints: ['10.100.1.8'],
+  contactPoints: ['10.100.1.6'],
   localDataCenter: 'datacenter1',
   keyspace: 'doddlecord'
 })
