@@ -1,0 +1,9 @@
+\.vscode/
+
+\.vs/
+
+node_modules/
+
+config/
+
+json_files/
