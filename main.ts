@@ -13,9 +13,8 @@ import { dbdata, memberDataResuls } from './modules/global/interfaces'
 const client = new Discord.Client()
 client.commands = new Discord.Collection()
 
-// Discord login, looks to see if in DEV or STABLE branch
-// Checks to see if in STABLE or INDEV and picks the corospoinding token
-if (__dirname.match('STABLE')) {
+// Checks to see if in STABLE or INDEV dir and picks the corospoinding token
+if (__dirname.match('TS')) { // bodge but fuck it lol
   client.login(config.token)
 } else {
   client.login(config.DEVtoken)
