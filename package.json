@@ -1,0 +1,16 @@
+{
+  "name": "doddlebot_ts",
+  "version": "1.0.0",
+  "description": "doddlebot typescript port",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ben Hunter",
+  "license": "ISC",
+  "dependencies": {
+    "cassandra-driver": "^4.6.1",
+    "discord.js": "^12.5.1",
+    "test":"0.6.0"
+  }
+}
