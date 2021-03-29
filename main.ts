@@ -21,6 +21,10 @@ if (__dirname.match('TS')) { // bodge but fuck it lol
   client.on('debug', e => {return console.info(e)})
 }
 
+// Discord error handleing
+client.on('error', e => {return console.error(e)})
+client.on('warn', e => {return console.warn(e)})
+
 consandra.connect()
 
 const commandFolders = fs.readdirSync('./modules').filter(dir => dir.name != 'global');
@@ -33,6 +37,21 @@ for (const folder of commandFolders) {
 		client.commands.set(command.name, command);
 	}
 }
+
+client.on('guildMemberAdd', member => { 
+  if (member.user.tag.match('discord.gg')) {
+    member.kick(member.id)
+    return
+  }
+  logger('info' , member, `${member.user.tag} has joined ${member.guild.name}`)
+})
+
+// need to set up removele of there member ID from metadata archive
+client.on('guildMemberRemove', remember => {
+  consandra.execute(`DELETE FROM member_data WHERE userid = '${remember.id}'`)
+  logger('info' , remember, `${remember.user.tag} Has left ${remember.guild.name}`)
+  channel(remember, 'themods').send(`${remember.user.tag.slice(0, -5)} has left the server`)
+})
 
 client.on('message', message => {
   if (message.author.bot) return
