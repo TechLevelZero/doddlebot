@@ -21,7 +21,7 @@ export default function message_init(message, dbData) {
         { query: `UPDATE  member_data SET totalpoints = ${rounedTotal} WHERE userid = '${dbData['userid']}'` }
       ]
       consandra.batch(queries, { }).then(function() { console.log('Member Leveled Up') }).catch(function(err) { console.log(err) })
-      message.channel.send(`You are now level ${dbData['level'] + 1}, ${message.author}`)
+      message.reply(`You are now level ${dbData['level'] + 1}, ${message.author}`)
     } else {
       const queries = [
         { query: `UPDATE  member_data SET points = ${pointsJSON.points} WHERE userid = '${dbData['userid']}'` },
