@@ -1,4 +1,4 @@
-const bot = require('/home/pi/doddlebot/doddlebot_TS/json_files/data.json')
+const bot = require('../../json_files/data.json')
 
 import { pointsJSON } from '../global/interfaces'
 import { consandra } from '../global/cassandra'
