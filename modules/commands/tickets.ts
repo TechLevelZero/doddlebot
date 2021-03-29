@@ -1,7 +1,7 @@
 
 const crypto = require('crypto')
 const { MessageEmbed, ReactionCollector } = require('discord.js');
-const bot = require('/home/pi/doddlebot/doddlebot_TS/json_files/data.json')
+const bot = require('../../json_files/data.json')
 
 import { consandra } from '../global/cassandra'
 import list_v2 from '../global/list_v2'

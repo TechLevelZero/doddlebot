@@ -1,5 +1,5 @@
 const { MessageEmbed } = require('discord.js')
-const bot = require('/home/pi/doddlebot/doddlebot_TS/json_files/data.json')
+const bot = require('../../json_files/data.json')
 
 module.exports = {
   name: 'roles',
