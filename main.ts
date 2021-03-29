@@ -110,7 +110,8 @@ client.on('message', message => {
         process.exit()
       }
     }
-
+    
+    if (message.content.indexOf(config.prefix) !== 0) return
     if (!command) return
 
     try {
