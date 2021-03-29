@@ -9,7 +9,7 @@ import list_v2 from '../global/list_v2'
 
 module.exports = {
   name: 'ticket',
-  aliases: ['tickets', 't'],
+  aliases: ['tickets'],
   description: 'A ticketing system bulit in to doddlebot',
 
   execute(message, args) {
