@@ -35,7 +35,7 @@ export default function autoMember(message) {
     }
 
     message.member.roles.add(bot.role.memberid)
-    message.channel.send( `I've made you a member! If you haven't please read the ${channel(message, 'rules')}. Also to pick your colour and personal roles go to ${channel(message, 'funwithbots')}`)
+    message.channel.send( `I've made you a member! If you haven't please read the ${channel(message, 'rules').name}. Also to pick your colour and personal roles go to ${channel(message, 'funwithbots').name}`)
     logger('info' , message.author, `${message.author.tag} had been added by doddlebot'`)
     const contentHashed = crypto.createHmac('sha512', config.key).update(content).digest('hex')
     consandra.execute(`UPDATE member_data SET hash = '${contentHashed}' WHERE userid = ${message.author.id}`)
