@@ -28,14 +28,13 @@ client.on('warn', e => {return console.warn(e)})
 consandra.connect()
 
 const commandFolders = fs.readdirSync('./modules').filter(dir => dir.name != 'global');
-const commandFiles = fs.readdirSync('./modules').filter(file => file.endsWith('.ts'))
 
 for (const folder of commandFolders) {
-	const commandFiles = fs.readdirSync(`./modules/${folder}`).filter(file => file.endsWith('.ts'));
-	for (const file of commandFiles) {
-		const command = require(`./modules/${folder}/${file}`);
-		client.commands.set(command.name, command);
-	}
+  const commandFiles = fs.readdirSync(`./modules/${folder}`).filter(file => file.endsWith('.ts'));
+  for (const file of commandFiles) {
+    const command = require(`./modules/${folder}/${file}`);
+    client.commands.set(command.name, command);
+  }
 }
 
 client.on('guildMemberAdd', member => { 
@@ -57,28 +56,28 @@ client.on('message', message => {
   if (message.author.bot) return
 
   const memberPromise = new Promise((resolve, _reject) => {
-    consandra.execute(`SELECT * FROM member_data WHERE userid = '${message.author.id}'`, (err4, dbData:memberDataResuls) => {
-      if (err4) {
-        console.log(err4)
-        logger('system', client.user, 'Error with member data CQL: ' + err4)
-        channel(message, 'themods').send(`There was an error with ${message.author.tag}'s (${message.author.id}) data, doddlebot has recoved but the DB table may need checking\n\nERROR:\n${err4}`)
+    consandra.execute(`SELECT * FROM member_data WHERE userid = '${message.author.id}'`, (err_dbData, dbData:memberDataResuls) => {
+      if (err_dbData) {
+        console.log(err_dbData)
+        logger('system', client.user, 'Error with member data CQL: ' + err_dbData)
+        channel(message, 'themods').send(`There was an error with ${message.author.tag}'s (${message.author.id}) data, doddlebot has recoved but the DB table may need checking\n\nERROR:\n${err_dbData}`)
         message.channel.send('There was an issue with doddlebot.')
         return
       }
       if (dbData.first() === null) {
-        consandra.execute('INSERT INTO member_data (userid,nickname,level,points,totalpoints,score,roles,wkylevel,wkypoints,wkytotalpoints) VALUES (?,?,?,?,?,?,?,?,?,?)', [`${message.author.id}`, `${message.member.displayName}`, 1, 0, 0, 0, `${message.member._roles}`, 1, 0, 0], { prepare: true }, err => {
-          if (err) {
-            console.log(err)
+        consandra.execute('INSERT INTO member_data (userid,nickname,level,points,totalpoints,score,roles,wkylevel,wkypoints,wkytotalpoints) VALUES (?,?,?,?,?,?,?,?,?,?)', [`${message.author.id}`, `${message.member.displayName}`, 1, 0, 0, 0, `${message.member._roles}`, 1, 0, 0], { prepare: true }, err_INSERT => {
+          if (err_INSERT) {
+            console.log(err_INSERT)
             logger('system', client.user, 'Error with adding member data')
-            channel(message, 'themods').send(`There was an error with adding ${message.author.displayName}'s (${message.author.id}) data, doddlebot has recoved but the DB table may need checking for this member.\n\nERROR:\n${err}`)
+            channel(message, 'themods').send(`There was an error with adding ${message.author.displayName}'s (${message.author.id}) data, doddlebot has recoved but the DB table may need checking for this member.\n\nERROR:\n${err_INSERT}`)
             message.channel.send('There was an issue with doddlebot.')
             return
           } else {
-            consandra.execute(`SELECT * FROM member_data WHERE userid = '${message.author.id}'`, (err, updated:memberDataResuls) => {
-              if (err4) {
-                console.log(err4)
-                logger('system', client.user, 'Error with member data (second stage) CQL: ' + err)
-                channel(message, 'themods').send(`There was an error with adding ${message.author.tag}'s (${message.author.id}) (second stage) data, doddlebot has recoved but the DB table may need checking for this member.\n\nERROR:\n${err4}`)
+            consandra.execute(`SELECT * FROM member_data WHERE userid = '${message.author.id}'`, (err_updated_dbData, updated:memberDataResuls) => {
+              if (err_updated_dbData) {
+                console.log(err_updated_dbData)
+                logger('system', client.user, 'Error with member data (second stage) CQL: ' + err_updated_dbData)
+                channel(message, 'themods').send(`There was an error with adding ${message.author.tag}'s (${message.author.id}) (second stage) data, doddlebot has recoved but the DB table may need checking for this member.\n\nERROR:\n${err_updated_dbData}`)
                 message.channel.send('There was an issue with doddlebot.')
                 return
               }
@@ -110,7 +109,7 @@ client.on('message', message => {
         process.exit()
       }
     }
-    
+
     if (message.content.indexOf(config.prefix) !== 0) return
     if (!command) return
 
@@ -118,7 +117,8 @@ client.on('message', message => {
       command.execute(message, args, dbData)
     } catch (error) {
       console.error(error)
-      message.reply('there was an error trying to execute that command!')
+      message.reply('There was an error trying to execute that command!')
     }
   })
 })
+ 
