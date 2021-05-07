@@ -8,6 +8,7 @@ import logger from './modules/global/logger'
 import channel from './modules/global/channel'
 import autoMember from './modules/tools/autoMember'
 import message_init from './modules/tools/message_init'
+import member_init from './modules/tools/member_init'
 import { dbdata, memberDataResuls } from './modules/global/interfaces'
 
 const client = new Discord.Client()
@@ -38,10 +39,12 @@ for (const folder of commandFolders) {
 }
 
 client.on('guildMemberAdd', member => { 
+  
   if (member.user.tag.match('discord.gg')) {
     member.kick(member.id)
     return
   }
+  member_init(member)
   logger('info' , member, `${member.user.tag} has joined ${member.guild.name}`)
 })
 
