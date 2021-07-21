@@ -1,5 +1,6 @@
 
 const { MessageEmbed } = require('discord.js')
+const { MessageButton } = require('discord-buttons');
 const bot = require('../../json_files/data.json')
 
 module.exports = {
@@ -7,43 +8,39 @@ module.exports = {
   description: 'access to an opt-in channel',
   execute(message) {
     if (message.member._roles.includes(bot.role.serid)) {
-      message.channel.send('you already have access, if you want to remove it react with \u2705').then(msg => {
-        msg.react('\u2705')
-        const filter = (reaction, user) => { return ['\u2705'].includes(reaction.emoji.name) && user.id === message.author.id }
-
-        msg.awaitReactions(filter, { max: 1, time: 60000, errors: ['time'] }).then(collected => {
-          const reaction = collected.first()
-
-          if (reaction.emoji.name === '\u2705') {
-            message.reply('Your access has been removed')
-            try { msg.delete({ timeout: 1, reason: 'bot removed'}) } catch (err) { console.log('message already deleted')}
+      const button = new MessageButton()
+        .setStyle('red')
+        .setLabel('Revoke Access') 
+        .setID('revoke_access_to_serious')
+      
+      message.channel.send('you already have access, if you want to revoke your access click below', button).then(msg => {
+        message.client.on('clickButton', async (button) => {
+          if (button.id === 'revoke_access_to_serious' && message.author.id === button.clicker.user.id) {
+            msg.edit('Your access has been removed', null)
+            await button.reply.defer()
             message.member.roles.remove(bot.role.serid)
           }
-        }).catch(_collected => {
-          try { msg.delete({ timeout: 1, reason: 'bot removed'}) } catch (err) { console.log('message already deleted')}
         })
-      })
+      });
     } else {
+      const button = new MessageButton()
+        .setStyle('green')
+        .setLabel('Grant Access') 
+        .setID('access_to_serious')
+      
       const embed = new MessageEmbed()
         .setColor(0xFEF65B)
         .setTitle('Serious chat opt in WARNING')
         .setDescription(bot.text.serious)
-      message.channel.send({ embed }).then(msg => {
-        setTimeout(() => {
-          msg.react('\u2705')
-          const filter = (reaction, user) => { return ['\u2705'].includes(reaction.emoji.name) && user.id === message.author.id }
+      
+      message.channel.send({ embed, button }).then(msg => {
 
-          msg.awaitReactions(filter, { max: 1, time: 60000, errors: ['time'] }).then(collected => {
-            const reaction = collected.first()
-
-            if (reaction.emoji.name === '\u2705') {
-              message.reply('You now have access')
-              try { msg.delete({ timeout: 1, reason: 'bot removed'}) } catch (err) { console.log('message already deleted')}
-              message.member.roles.add(bot.role.serid)
-            }
-          }).catch(_collected => {
-            try { msg.delete({ timeout: 1, reason: 'bot removed'}) } catch (err) { console.log('message already deleted')}
-          })
+        message.client.on('clickButton', async (button) => {
+          if (button.id === 'access_to_serious' && message.author.id === button.clicker.user.id) {
+            msg.edit('You now have access', null)
+            await button.reply.defer()
+            message.member.roles.add(bot.role.serid)
+          }
         })
       })
     }

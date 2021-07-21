@@ -1,6 +1,7 @@
 
 const crypto = require('crypto')
 const { MessageEmbed, ReactionCollector } = require('discord.js');
+const { MessageButton, MessageActionRow } = require('discord-buttons');
 const bot = require('../../json_files/data.json')
 
 import { consandra } from '../global/cassandra'
@@ -14,6 +15,28 @@ module.exports = {
 
   execute(message, args) {
 
+    if (args.length == 0) {
+      const button = new MessageButton()
+        .setStyle('green')
+        .setLabel('Open a Ticket') 
+        .setID('opening_ticket')
+
+      const embed = new MessageEmbed()
+        .setColor(0xFEF65B)
+        .setTitle('Server Tickets')
+        .setDescription('Tickets are an easy way to make requests and let mods follow up on them. To fill in a ticket you need two things, a title and a description. To open a ticket click the button below for more info and to get stared!')
+      message.channel.send({embed, button})
+
+      return
+    }
+
+    message.client.on('clickButton', async (button) => {
+      if (button.id === 'opening_ticket') {
+        await button.reply.defer()
+        openTicket()
+      }
+    })
+
     function vote(args, result) {
       if (args[1] === 'up') return result.rows[0].votes + 1
       if (args[1] === 'down') return result.rows[0].votes - 1
@@ -21,34 +44,48 @@ module.exports = {
 
     let ticket_no = args[0].slice(1)
     // embed when opening a ticket
-    function ticketEmbed(contentHashed) {
-      const embed = new MessageEmbed()
-        .setColor(0xFEF65B)
-        .setTitle('Your ticket ID is: ' + contentHashed)
-        .setDescription('To fill in this ticket, see the commmands below\n\n`d!ticket #' + contentHashed + ' title [your title]` to set the title.\n`d!ticket #' + contentHashed +' description [your description]` to set the description.')
-        .setFooter('Both a title and a description need to be given to be a valid ticket.\nYou dont need to use the square brackits [] in your title or description')
-      message.channel.send({ embed })
+    function openTicket() {
+      let ticket_id
+      consandra.execute(`SELECT * FROM tickets`, (err, result) => {
+        for (const index in result.rows) {
+          if (result.rows[index].userid === message.author.id && result.rows[index].title == undefined) {
+            ticket_id = result.rows[index].requestid
+          } else {
+            ticket_id = crypto.createHmac('sha1', 'build_a_problem').update(message.content + message.author.id + message.channel.id + Date.now()).digest('hex').slice(0,5).toLowerCase()
+            consandra.execute('INSERT INTO tickets (userid, requestid, date_epoch, votes, voterid, completed, comments) VALUES (?, ?, ?, ?, ?, ?, ?)', [message.author.id, ticket_id, `${Date.now()}`, 1, `{"${message.author.id}": "up"}`, false, '[]'], { prepare: true }, err => {
+              if (err) console.log(err)
+            })
+          }
+        }
+        const embed = new MessageEmbed()
+          .setColor(0xFEF65B)
+          .setTitle('Your ticket ID is: ' + ticket_id)
+          .setDescription('To fill in this ticket, see the commmands below\n\n`d!ticket #' + ticket_id + ' title [your title]` to set the title.\n`d!ticket #' + ticket_id +' description [your description]` to set the description.')
+          .setFooter('Both a title and a description need to be given to be a valid ticket.\nYou dont need to use the square brackits [] in your title or description')
+        message.channel.send({ embed })
+      })
     }
 
     if (args[0] === 'open') {
       // stop people making new tictets if one is ,alrady open
-      let mark = true
-      consandra.execute(`SELECT * FROM tickets`, (err, result) => { 
-        for (const index in result.rows) {
-          if (result.rows[index].userid === message.author.id && result.rows[index].title == undefined) { // check database to see if there is a ticket open with no title with there user id
-            ticketEmbed(result.rows[index].requestid)
-            mark = false
-          }
-        }
-        if (mark) { // if mark is true makes a new ticket and stors it in the database
-          const contentHashed = crypto.createHmac('sha1', 'build_a_problem').update(message.content + message.author.id + message.channel.id + Date.now()).digest('hex').slice(0,5).toLowerCase()
+      openTicket()
+      // let mark = true
+      // consandra.execute(`SELECT * FROM tickets`, (err, result) => { 
+      //   for (const index in result.rows) {
+      //     if (result.rows[index].userid === message.author.id && result.rows[index].title == undefined) { // check database to see if there is a ticket open with no title with there user id
+      //       openTicket()
+      //       mark = false
+      //     }
+      //   }
+      //   if (mark) { // if mark is true makes a new ticket and stors it in the database
+      //     const contentHashed = crypto.createHmac('sha1', 'build_a_problem').update(message.content + message.author.id + message.channel.id + Date.now()).digest('hex').slice(0,5).toLowerCase()
 
-          consandra.execute('INSERT INTO tickets (userid, requestid, date_epoch, votes, voterid, completed, comments) VALUES (?, ?, ?, ?, ?, ?, ?)', [message.author.id, contentHashed, `${Date.now()}`, 1, `{"${message.author.id}": "up"}`, false, '[]'], { prepare: true }, err => {
-            if (err) console.log(err)
-          })
-          ticketEmbed(contentHashed)
-        }
-      })
+      //     consandra.execute('INSERT INTO tickets (userid, requestid, date_epoch, votes, voterid, completed, comments) VALUES (?, ?, ?, ?, ?, ?, ?)', [message.author.id, contentHashed, `${Date.now()}`, 1, `{"${message.author.id}": "up"}`, false, '[]'], { prepare: true }, err => {
+      //       if (err) console.log(err)
+      //     })
+      //     openTicket()
+      //   }
+      // })
     }
 
     // list command
