@@ -12,6 +12,9 @@ import member_init from './modules/tools/member_init'
 import { dbdata, memberDataResuls } from './modules/global/interfaces'
 
 const client = new Discord.Client()
+
+const buttons = require('discord-buttons')(client)
+
 client.commands = new Discord.Collection()
 
 // Checks to see if in STABLE or INDEV dir and picks the corospoinding token
