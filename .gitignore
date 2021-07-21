@@ -9,3 +9,6 @@ config/
 json_files/
 
 modules/commands/blank
+
+out/
+tsconfig.json
